@@ -199,7 +199,7 @@ main { max-width:1120px; margin:28px auto 70px; padding:0 18px }
 .card .label::before { content:"◦" }
 .card .value { font-size:34px; font-weight:900; margin-top:10px; letter-spacing:-.045em; font-variant-numeric:tabular-nums; text-transform:uppercase }
 .card .value.mono { font-size:14px; letter-spacing:0; text-transform:none; font-weight:800; overflow-wrap:anywhere; word-break:break-word; line-height:1.4 }
-.card .sub { font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:8px; text-transform:uppercase; letter-spacing:.08em }
+.card .sub { font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:8px; text-transform:uppercase; letter-spacing:.08em; overflow-wrap:anywhere; word-break:break-word }
 .cards .card.hero {
   background:var(--acid); color:var(--on-acid);
 }
@@ -465,7 +465,7 @@ textarea { resize:vertical; min-height:96px; font-family:var(--mono); font-size:
     <div class="cards">
       <div class="card hero"><div class="label">已处理请求</div><div class="value" id="ovTotal">–</div><div class="sub" id="ovErr">0 个错误</div></div>
       <div class="card"><div class="label">上游</div><div class="value mono" id="ovUpstream">–</div><div class="sub" id="ovUa">–</div></div>
-      <div class="card"><div class="label">运行时长</div><div class="value" id="ovUptime">–</div><div class="sub">在线秒数</div></div>
+      <div class="card"><div class="label">运行时长</div><div class="value" id="ovUptime">–</div><div class="sub">本次启动至今</div></div>
       <div class="card"><div class="label">最近一分钟</div><div class="value" id="ovMin">–</div><div class="sub" id="ov5m">– 近 5 分钟</div></div>
       <div class="card"><div class="label">模型</div><div class="value" id="ovModels">–</div><div class="sub" id="ovAllowed">– 个可用</div></div>
     </div>

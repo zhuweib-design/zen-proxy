@@ -53,8 +53,8 @@ const R = [
   // ---- 最近请求表 ----
   ['<span class="hh">Recent requests</span>', '<span class="hh">最近请求</span>', 1],
   ['<span class="sticker grape" style="transform:none">live feed</span>', '<span class="sticker grape" style="transform:none">实时</span>', 1],
-  ['<th>Time</th><th>Model</th><th>Result</th><th>Latency</th><th>Count</th>',
-   '<th>时间</th><th>模型</th><th>结果</th><th>耗时</th><th>次数</th>', 1],
+  // 表头那一条英文锚点已删：加"输入/输出"两列时整行被重写，英文原文在本文件里
+  // 已不存在，留着只会让 --check 常年报一条假红。现在的中文表头直接维护。
   ['no requests yet — go make some noise.', '还没有请求记录。', 2],
   ['onclick="pageTable(-1)" ${tablePage <= 1 ? "disabled" : ""}>‹ prev</button>',
    'onclick="pageTable(-1)" ${tablePage <= 1 ? "disabled" : ""}>‹ 上一页</button>', 1],
@@ -202,7 +202,7 @@ const R = [
   // ---- 补漏：扫描出来的残留 ----
   ['<title>Zen Proxy — the free-tier hype machine</title>', '<title>Zen Proxy — 免费额度中转面板</title>', 1],
   ['alt="zen-proxy logo"', 'alt="zen-proxy 图标"', 2],
-  ['<div class="sub">seconds online</div>', '<div class="sub">在线秒数</div>', 1],
+  ['<div class="sub">seconds online</div>', '<div class="sub">本次启动至今</div>', 1],
   ['<div class="sub" id="ovErr">0 errors</div>', '<div class="sub" id="ovErr">0 个错误</div>', 1],
   ['<div class="sub" id="ov5m">– in 5 min</div>', '<div class="sub" id="ov5m">– 近 5 分钟</div>', 1],
   ['<div class="sub" id="ovAllowed">– allowed</div>', '<div class="sub" id="ovAllowed">– 个可用</div>', 1],
