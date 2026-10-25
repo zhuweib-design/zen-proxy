@@ -3,17 +3,16 @@
 </p>
 
 <p align="center"><b>zen-proxy</b></p>
-<p align="center">Use OpenCode Zen's free models from any AI coding agent.</p>
-<p align="center"><sub>No account. No API key. OpenAI&nbsp;and&nbsp;Anthropic&nbsp;compatible. Runs on your machine.</sub></p>
+<p align="center">在任何 AI 编程客户端里使用 OpenCode Zen 的免费模型。</p>
+<p align="center"><sub>无需注册。无需 API Key。兼容 OpenAI 与 Anthropic 接口。全程跑在你自己的机器上。</sub></p>
+
+<p align="center"><b>简体中文</b> &nbsp;·&nbsp; <a href="README.en.md">English</a></p>
 
 <p align="center">
-  <a href="https://discord.gg/Dw5Ctrtuw">
-    <img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat-square&labelColor=1a1612&logo=discord&logoColor=white" alt="Join the Discord server">
-  </a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-ccf73a?style=flat-square&labelColor=1a1612" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/bun-1.2%2B%20(or%20node%2018%2B%20BYOK)-8b8b8b?style=flat-square&labelColor=1a1612" alt="Bun 1.2+">
   <img src="https://img.shields.io/badge/dependencies-0-8b8b8b?style=flat-square&labelColor=1a1612" alt="Zero dependencies">
-  <a href="#any-openai-compatible-agent">
+  <a href="#任意-openai-兼容客户端">
     <img src="https://img.shields.io/badge/OpenAI_compatible-8b8b8b?style=flat-square&labelColor=1a1612&logo=openai" alt="OpenAI compatible">
   </a>
   <a href="#claude-code">
@@ -22,18 +21,20 @@
 </p>
 
 <p align="center">
-  <img src="assets/brag-demo.gif" alt="zen-proxy in 25 seconds: install → run the proxy → zen-claude → point any OpenAI-compatible agent at it" width="860" />
+  <img src="assets/brag-demo.gif" alt="zen-proxy 25 秒演示：安装、启动、接入任意 OpenAI 兼容客户端" width="860" />
   <br />
   <sub>
-    <a href="assets/brag-demo.mp4">▶ full video with sound</a>
+    <a href="assets/brag-demo.mp4">▶ 带声音的完整视频</a>
   </sub>
 </p>
 
+> 这是 [`12errh/zen-proxy`](https://github.com/12errh/zen-proxy) 的个人修改版。上游功能全部保留，另外加了几项本机用得上的东西，见 [本版新增](#本版新增)。
+
 ---
 
-## Start here
+## 开始使用
 
-### Install
+### 安装
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/12errh/zen-proxy/main/install.sh | bash
@@ -43,7 +44,9 @@ curl -fsSL https://raw.githubusercontent.com/12errh/zen-proxy/main/install.sh | 
 irm https://raw.githubusercontent.com/12errh/zen-proxy/main/install.ps1 | iex
 ```
 
-<sub>That is the entire installation — no account, no API key, no `npm install`. Now pick your agent below.</sub>
+<sub>安装就这一步：不需要注册、不需要 API Key、不需要 `npm install`。装完挑一个客户端接上即可。</sub>
+
+> 在 Windows 上还可以用免安装的启动脚本，见 [Windows 启动脚本](#windows-启动脚本)。
 
 ---
 
@@ -53,165 +56,195 @@ irm https://raw.githubusercontent.com/12errh/zen-proxy/main/install.ps1 | iex
 zen-claude
 ```
 
-<sub>Identical on Linux, macOS and Windows.</sub>
+<sub>Linux、macOS、Windows 上用法完全一致。</sub>
 
-It starts the proxy if it is not already running, loads every live free Zen model into Claude Code's `/model` picker, runs Claude Code, and stops the proxy again when you exit. Your existing Claude Code config is never touched.
+它会按需启动代理、把当前可用的免费模型全部放进 Claude Code 的 `/model` 选择器、运行 Claude Code，并在你退出时把代理停掉。你原有的 Claude Code 配置不会被改动。
 
 ---
 
-### Any OpenAI-compatible agent
+### 任意 OpenAI 兼容客户端
 
-<sub>Cline, Roo Code, Continue, Aider, mimo, opencode forks — anything with a `baseURL` setting.</sub>
-
-| Setting | Value |
+| 填什么 | 值 |
 |---|---|
 | Base URL | `http://127.0.0.1:8787/v1` |
-| API key | `public` |
-| Model | anything from `GET /v1/models` |
-
-Confirm the proxy is up:
+| API Key | `public` |
+| 模型 | 以 `http://127.0.0.1:8787/v1/models` 的实时列表为准 |
 
 ```bash
-curl -s http://127.0.0.1:8787/health
-# {"ok":true,"upstream":"https://opencode.ai/inference/openai/v1"}
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -d '{"model":"deepseek-v4.1-flash-free","messages":[{"role":"user","content":"说句话"}]}'
 ```
 
-<details>
-<summary>Run the proxy yourself</summary>
-
-```bash
-zen-proxy     # http://127.0.0.1:8787 — dashboard at /
-```
-
-It stays up until you stop it, so you point your agent at it once and keep using it. `zen-claude` does this for you and cleans up after.
-</details>
+`max_tokens` 和上下文长度都不用填，留默认。
 
 ---
 
-## What you get
+## 你能得到什么
 
 | | |
 |---|---|
-| `POST /v1/chat/completions` | OpenAI, streaming and not |
-| `POST /v1/responses` | OpenAI Responses API, translated both ways — a body that speaks Responses gets Responses back, a chat body keeps its chat reply |
-| `POST /v1/messages` | Anthropic Messages API — **this is the Claude Code one** |
-| `POST /v1/messages/count_tokens` | Anthropic token estimate |
-| `GET /v1/models` | What's live right now |
-| Automatic fallback | Retries the next free model on `429` / `5xx` / unavailable |
-| Model aliases | Call it `gpt-4o`, get a free model back |
-| Auth | Anonymous `Bearer public`, or bring your own Zen key |
-| Dashboard | `http://127.0.0.1:8787/` |
+| `POST /v1/chat/completions` | OpenAI 接口，支持流式与非流式 |
+| `POST /v1/responses` | OpenAI Responses API，双向翻译：来的请求是 Responses 形状就回 Responses，是 chat 形状就回 chat |
+| `POST /v1/messages` | Anthropic Messages API，**Claude Code 走这条** |
+| `POST /v1/messages/count_tokens` | Anthropic 的 token 估算 |
+| `GET /v1/models` | 当前实际可用的模型 |
+| 自动回退 | 遇到 `429`、`5xx` 或模型不可用时自动换下一个免费模型 |
+| 模型别名 | 客户端按 `gpt-4o` 调用，实际路由到某个免费模型 |
+| 鉴权 | 匿名 `Bearer public`，也可以填自己的 Zen key |
+| 仪表盘 | `http://127.0.0.1:8787/` |
 
-The free-model catalog in [`models.json`](models.json) is refreshed from OpenCode's public catalog by a GitHub Action every 6 hours.
+免费模型目录 [`models.json`](models.json) 由 GitHub Action 每 6 小时从 OpenCode 的公开目录刷新一次。
 
 ---
 
-## Why a proxy is needed
+## 本版新增
 
-OpenCode's free models are served only to the OpenCode CLI itself. Everyone else gets one of:
+以下内容上游没有，是这个修改版加的。
+
+### Token 用量统计
+
+每次请求的用量都会被记下来：输入、输出、缓存命中、思考（reasoning）四项，流式与非流式两条路径都覆盖。
+
+- 按小时累加，落盘到 `usage-history.json`，进程重启后历史还在。
+- 内存里另存一份"本次启动以来"的累计，重启归零。两者语义不同，面板上分开显示。
+- 每 10 秒合并写一次盘，写入用临时文件改名，断电不会留下半个坏文件。**强制结束进程（任务管理器、`taskkill /F`）会丢掉最近 10 秒的数据**，正常退出不会。
+- 新增接口 `GET /api/usage?range=today|3d|week|month|30d|all`，返回区间汇总与时间序列。跨度不超过四天按小时给点，超过按天给点。
+
+### 中文面板
+
+整个面板已中文化，共 142 条文案。翻译不靠手工维护，而是由 `localize-zh.mjs` 按对照表生成：
+
+```bash
+node localize-zh.mjs --check   # 只检查有多少条能对上，不改文件
+node localize-zh.mjs           # 执行翻译，首次会把英文原文备份到 public/index.html.en.bak
+```
+
+脚本可重复执行：已经是中文的条目自动跳过，第二次跑文件不变。上游更新面板后重跑一次即可恢复中文；某条原文被上游改写时，脚本会打印"未匹配"并列出原文。
+
+按约定保留英文的词：token、API、JSON、URL、状态码、UA / User-Agent、Host、Port、Zen key、Proxy key、模型 ID、`/v1/models`、`/v1/responses`。
+
+### 统计页
+
+面板第五个页签，一排指标卡加一张图：
+
+- 四张卡：请求总数、输入 token、缓存 token（副行是命中率）、输出 token（副行是平均每次输出）。
+- 一张柱线复合图：柱子是 token，折线是请求数，双 Y 轴；可切 Token / 请求数 / 吞吐三种口径。
+- 六个区间：今日、近 3 日、本周、本月、近 30 天、全部。
+- 鼠标停在一根柱子上，会列出那一格的请求数、失败数、输入、其中缓存、输出、思考。
+
+概览页的「最近请求」表也多了输入、输出两列。
+
+### 深浅主题
+
+右上角一个按钮切换深色与浅色。选择记在浏览器本地；从没手动选过时跟随系统的深浅偏好。
+
+深色主题不是简单反色。面板的边框和硬阴影原本都读同一个颜色变量，主题一反转，荧光绿底上的文字会跟着变浅、糊成一片。所以亮色底上的文字单独用了一个固定的深色变量，描边和点缀用的绿也单独拆出来保持亮度。
+
+### 自检脚本
+
+```bash
+node check-tools.mjs    # 两条路由的工具调用是否正常（会发真实请求）
+node check-usage.mjs    # 统计采集、缓存命中、落盘、重启读回（自己在另一个端口起隔离实例）
+```
+
+`check-usage.mjs` 之所以起隔离实例，是因为真实实例的计数会被自动同步探测和正在使用的客户端污染，精确断言必然假红。它会优先用 Bun 启动隔离实例——用 Node 起会被上游闸门拒成 429。
+
+### Windows 启动脚本
+
+| 文件 | 用途 |
+|---|---|
+| `启动-后台.bat` | 后台启动，无窗口 |
+| `停止.bat` | 停止正在运行的服务 |
+| `start-zen-proxy.bat` | 带窗口启动，用于排查问题 |
+| `zen-proxy.vbs` | 放进「启动」文件夹实现开机自启 |
+
+前两个实际调用 `start-hidden.ps1` / `stop-hidden.ps1`。启动脚本优先找 Bun，找不到才回退 Node，且回退时明确警告：那样免费额度拿不到，只有自带密钥的流量能用。
+
+---
+
+## 为什么需要代理
+
+OpenCode 的免费模型只对 OpenCode CLI 本身开放。别的东西直接请求会拿到：
 
 ```
 403 FreeTierError: OpenCode's free tier can only be used from within OpenCode
-429 FreeUsageLimitError: Free usage limit reached …   ← what you get instead now
+429 FreeUsageLimitError: Free usage limit reached …
 ```
 
-Since OpenCode 2, the second one is what a non-CLI client sees — with a `retry-after` window and zero personal usage. It is not your quota: it is the gate's verdict on the request.
+`429` 这条有迷惑性：服务端判定"这个请求不像我们的客户端"时，返回的也是和额度耗尽一模一样的 429。所以看到 429 并不等于没额度了。
 
-zen-proxy sits in front of that gateway and makes your agent's traffic indistinguishable from the CLI's, on three layers — all measured from a byte-capture of a real OpenCode 2.1.4 request.
+代理做的事就是把请求补齐成 OpenCode CLI 的样子：正确的端点、运行时的指纹、harness 系统提示、工具清单、会话与线路身份。这些条件缺一条都会被拒。
 
-<details>
-<summary>What it actually changes</summary>
-
-| Gateway requirement | What zen-proxy does |
-|---|---|
-| **Run under Bun.** The gate fingerprints the TLS/HTTP stack — the exact bytes that stream `200` under Bun's fetch get `429 FreeUsageLimitError` from Node's (same second, same session) | `zen-proxy` / `zen-claude` prefer bun; node works with a BYOK key, and the proxy warns at boot under node |
-| The v2 endpoint `https://opencode.ai/inference/openai/v1` | Uses it, and migrates old configs pointing at `/inference/v1` or `/zen/v1` |
-| The v2 wire identity: `x-opencode-client`, `x-opencode-project` (sha1, per-install), `b3`/`traceparent`, affinity pair | Sends all of it, in the CLI's own formats |
-| The **OpenCode harness system text** — requests whose system prompt is not the CLI's harness preamble are refused however agent-shaped the rest is (a generic prompt, the opening line, or a ~1.8 KB cut of it are all refused) | Prepends the captured harness preamble (`agent-preamble.txt`) ahead of your agent's own instructions, on every route, idempotently |
-| OpenCode's own tool manifest (the gate refuses a bare `read` stub now) | Attaches the captured v2 manifest (`agent-tools.json`: read/edit/glob/grep/shell/write are the ones whose name your agent maps to) ahead of your tools, renames the mapped calls back to your agent's names, and drops the rest |
-| Streams with `stream_options` and a real `max_completion_tokens` | Mirrors the CLI's shape on health probes, and forwards yours untouched |
-
-**Run it with bun** (`bun zen-proxy.mjs`, or through `zen-proxy`/`zen-claude`, which pick bun when present): that is the one requirement node cannot substitute away — the gateway 429s node's stack even though headers, sessions and bodies are byte-identical.
-
-For replies, one rule: a reply may only carry calls your agent can actually run. An agent turn with its own tools keeps its calls (mapped manifest calls come back renamed) and loses everything else — manifest names it has no counterpart for, and tool names the provider invents; a `tool_choice`-pinned turn keeps only the pinned call; a reply with no tools attached at all (title generators, plain pings) is stripped of every `tool_call`. Health probes send the same harness preamble + manifest + a real ask (serially, spaced out — the gate blanket-403s a rapid model-hop burst from one identity), so a model in the dashboard's `ok` row genuinely answered; the old `rate-limited` parking behaviour is gone (a `FreeUsageLimitError` bucket no longer removes or dead-labels a model).
-</details>
-
-<details>
-<summary>Gotchas worth knowing before you file a bug</summary>
-
-- **This rides an anonymous free tier.** Per-IP quotas, shared pool, sometimes saturated. Bring a key if you need reliability.
-- **A bare `curl` gets 429/403.** The gateway only answers genuine *agent* traffic (harness preamble, manifest, plausible wire) — every agent above does this; a hand-rolled chat client won't.
-- **Health probes are agent-shaped.** Sync sends each model the same thing a real v2 client sends — harness preamble, OpenCode's manifest, `stream_options`, a real token budget — serially, with a beat between hops (a rapid burst from one identity is blanket-refused), so `ok` means the model actually streamed. A `FreeUsageLimitError` probe never marks a model dead or drops it from your list.
-- **Fallbacks announce themselves** via `zen_served_by` and the `x-zen-served-by` / `x-zen-fallback` headers.
-- **`agent-tools.json` and `agent-preamble.txt` are captures of OpenCode v2.1.4's request.** If OpenCode changes its harness text or tool schemas, re-capture both from any real request (the gate fingerprints the preamble; the first 139 characters are not enough). The preamble file is plain text; the tools file accepts a bare array or `{"tools":[...]}`.
-</details>
+> 实测结论：**运行时必须是 Bun**。同一份请求体、同一分钟，Bun 发出去是 200，Node 发出去是 429。这不是装饰性差别，是闸门的一部分。
 
 ---
 
-## Configuration
+## 配置
 
-`zen-proxy.json`, created on first run, hot-reloaded, and editable from the dashboard. Environment variables override at startup.
+配置文件 `zen-proxy.json` 首次启动时自动生成，支持热重载，也可以直接在面板里改。启动时的环境变量优先级更高。
 
 <details>
-<summary>Keys</summary>
+<summary>配置项</summary>
 
-| Key | Default | Description |
+| 键 | 默认值 | 说明 |
 |---|---|---|
-| `host` / `port` | `127.0.0.1` / `8787` | Bind address (restart required) |
-| `upstream` | `https://opencode.ai/inference/openai/v1` | Zen gateway base (v2; discovery stays on `/inference/v1`) |
-| `ua` / `autoUA` | `opencode/latest/2.1.4/cli` / `true` | The v2 CLI's UA format; auto-tracking skips v2-style UAs (npm only carries 1.x) |
-| `clientName` / `projectHash` / `tracing` | `cli` / auto / `true` | The v2 identity headers: `x-opencode-client`, per-install `x-opencode-project` (sha1 of `directory:<cwd>`), `b3`/`traceparent` |
-| `injectSession` | `true` | Mint and send the session header pair + affinity pair |
-| `agentPreamble` | `""` (= auto) | `""`/`auto` → shipped harness preamble; `off`/`none` → none; other text → used verbatim |
-| `agentTools` | `true` | Attach OpenCode's v2 manifest to every request, ahead of your agent's tools; replies keep only the calls your agent can run — mapped ones renamed back, the rest dropped |
-| `defaultModel` | `""` | Empty = auto-pick the first working free model |
-| `fallbackModels` | *(from [`models.json`](models.json))* | Tried in order on failure. Omit to follow the catalog; save once to pin your own list |
-| `modelAliases` | `{}` | e.g. `{"gpt-4o": "space-bunny-free"}` |
-| `responsesModels` | `["gpt-5*","gpt-6*","grok-*","muse-spark-*"]` | Models served on `/v1/responses`; patterns may end in `*` |
-| `defaultZenKey` | `""` | Your own Zen key instead of anonymous `public` |
-| `proxyKey` | `""` | Require this from clients; also locks the dashboard and `/api/*` |
-| `rateLimitMax` / `rateLimitWindowMs` | `0` (off) / `60000` | Per-client rate limiting |
-| `timeoutMs` / `cacheMs` | `120000` / `30000` | Upstream timeout, `/v1/models` cache TTL |
-| `autoSync` / `autoSyncIntervalMs` | `true` / `3600000` | Runtime discovery of newly-offered free models |
-| `trustForwarded` | `false` | Honour `x-forwarded-for` behind a reverse proxy |
+| `host` / `port` | `127.0.0.1` / `8787` | 监听地址（改完要重启） |
+| `upstream` | `https://opencode.ai/inference/openai/v1` | Zen 网关基址（v2；模型目录仍在 `/inference/v1`） |
+| `ua` / `autoUA` | `opencode/latest/2.1.4/cli` / `true` | v2 CLI 的 UA 格式；自动跟版会跳过 v2 格式（npm 上只发 1.x） |
+| `clientName` / `projectHash` / `tracing` | `cli` / 自动 / `true` | v2 的线路身份头：`x-opencode-client`、每份安装一个 `x-opencode-project`（`directory:<cwd>` 的 sha1）、`b3`/`traceparent` |
+| `injectSession` | `true` | 生成并发送会话头对与亲和头对 |
+| `agentPreamble` | `""`（= 自动） | `""`/`auto` → 用自带的 harness 提示词；`off`/`none` → 不发；其他文本 → 原样发送 |
+| `agentTools` | `true` | 每个请求都带上 OpenCode 的 v2 工具清单，排在客户端工具之前；回复只保留客户端能执行的调用（能映射的改回原名，其余丢弃） |
+| `defaultModel` | `""` | 留空 = 自动挑第一个可用的免费模型 |
+| `fallbackModels` | 来自 [`models.json`](models.json) | 失败时按顺序尝试。删掉这个键表示跟随目录；保存一次即固定成你自己的清单 |
+| `modelAliases` | `{}` | 例如 `{"gpt-4o": "space-bunny-free"}` |
+| `responsesModels` | `["gpt-5*","gpt-6*","grok-*","muse-spark-*"]` | 走 `/v1/responses` 的模型，模式可用 `*` 结尾 |
+| `defaultZenKey` | `""` | 填自己的 Zen key，替代匿名的 `public` |
+| `proxyKey` | `""` | 要求客户端带上它；同时锁住面板与 `/api/*` |
+| `rateLimitMax` / `rateLimitWindowMs` | `0`（关闭）/ `60000` | 按客户端限流 |
+| `timeoutMs` / `cacheMs` | `120000` / `30000` | 上游超时、`/v1/models` 缓存时长 |
+| `autoSync` / `autoSyncIntervalMs` | `true` / `3600000` | 运行时发现新上架的免费模型 |
+| `trustForwarded` | `false` | 在反向代理后面时采信 `x-forwarded-for` |
 
-`HOST` `PORT` `ZEN_URL` `ZEN_UA` `ZEN_CLIENT` `ZEN_PROJECT_HASH` `ZEN_TRACING=0` `INJECT_SESSION=0` `AUTO_UA=0` `UA_REFRESH_MS` `AGENT_TOOLS=0` `AGENT_PREAMBLE=off` `ZEN_PROXY_AGENT_TOOLS` `ZEN_PROXY_AGENT_PREAMBLE` `PROBE_AUTH` `DEFAULT_MODEL` `FALLBACK_MODELS` `MODEL_ALIASES` `RESPONSES_MODELS` `PROXY_KEY` `ZEN_KEY` `TRUST_FORWARDED=1` `TIMEOUT_MS` `CACHE_MS` `RATE_LIMIT_MAX` `RATE_LIMIT_WINDOW_MS` `AUTO_SYNC=0` `AUTO_SYNC_MS` `ZEN_PROXY_CONFIG`
+环境变量：`HOST` `PORT` `ZEN_URL` `ZEN_UA` `ZEN_CLIENT` `ZEN_PROJECT_HASH` `ZEN_TRACING=0` `INJECT_SESSION=0` `AUTO_UA=0` `UA_REFRESH_MS` `AGENT_TOOLS=0` `AGENT_PREAMBLE=off` `ZEN_PROXY_AGENT_TOOLS` `ZEN_PROXY_AGENT_PREAMBLE` `PROBE_AUTH` `DEFAULT_MODEL` `FALLBACK_MODELS` `MODEL_ALIASES` `RESPONSES_MODELS` `PROXY_KEY` `ZEN_KEY` `TRUST_FORWARDED=1` `TIMEOUT_MS` `CACHE_MS` `RATE_LIMIT_MAX` `RATE_LIMIT_WINDOW_MS` `AUTO_SYNC=0` `AUTO_SYNC_MS` `ZEN_PROXY_CONFIG` `ZEN_PROXY_USAGE_PATH`
 
-Anonymous `public` access shares a per-IP quota that is sometimes saturated. Set `defaultZenKey`, or send `x-zen-key` per request, for steadier service.
+匿名 `public` 用的是按 IP 共享的额度，忙时会被打满。想要稳定，就填 `defaultZenKey`，或者每个请求带 `x-zen-key`。
 </details>
 
 <details>
-<summary>Dashboard</summary>
+<summary>仪表盘</summary>
 
-`http://127.0.0.1:8787/` — upstream health and uptime, a live request feed, one-click model testing, instant config editing, and a log tail.
+`http://127.0.0.1:8787/` —— 上游健康状态与运行时长、实时请求流、一键测模型、直接改配置、日志尾巴，以及本版新增的统计页与深浅主题。
 
 ![zen-proxy dashboard](assets/dashboard.png)
 </details>
 
 <details>
-<summary>HTTP API</summary>
+<summary>HTTP 接口</summary>
 
-| Method | Path | Description |
+| 方法 | 路径 | 说明 |
 |---|---|---|
 | `POST` | `/v1/chat/completions` | OpenAI Chat Completions |
 | `POST` | `/v1/responses` | OpenAI Responses API |
 | `POST` | `/v1/messages` | Anthropic Messages API |
-| `POST` | `/v1/messages/count_tokens` | Anthropic token estimate |
-| `GET` | `/v1/models` | Available models |
-| `GET` | `/health` | Health check (always open) |
-| `GET` | `/` | Dashboard |
-| `GET`/`PUT` | `/api/config` | Read / update configuration |
-| `GET` | `/api/status` | Stats and upstream health |
-| `POST` | `/api/test` | Test one model — `{"model":"..."}` |
-| `GET` | `/api/logs` | Log tail |
-| `POST` | `/api/sync` | Re-run model discovery |
-| `POST` | `/api/reset` | Reset request statistics |
+| `POST` | `/v1/messages/count_tokens` | Anthropic token 估算 |
+| `GET` | `/v1/models` | 可用模型 |
+| `GET` | `/health` | 健康检查（不需要鉴权） |
+| `GET` | `/` | 仪表盘 |
+| `GET`/`PUT` | `/api/config` | 读取 / 更新配置 |
+| `GET` | `/api/status` | 统计与上游健康 |
+| `GET` | `/api/usage` | **本版新增**：token 用量汇总与时间序列 |
+| `POST` | `/api/test` | 测一个模型 —— `{"model":"..."}` |
+| `GET` | `/api/logs` | 日志尾巴 |
+| `POST` | `/api/sync` | 重新探测模型 |
+| `POST` | `/api/reset` | 清空请求统计 |
 </details>
 
 <details>
-<summary>Running as a service (Linux)</summary>
+<summary>作为服务运行（Linux）</summary>
 
-`install.sh` offers to install a systemd unit, or:
+`install.sh` 会询问是否安装 systemd 单元，也可以手动：
 
 ```bash
 sudo systemctl enable --now zen-proxy
@@ -219,41 +252,46 @@ sudo systemctl enable --now zen-proxy
 </details>
 
 <details>
-<summary>Doing it by hand instead of using <code>zen-claude</code></summary>
+<summary>不用 <code>zen-claude</code>，手动接入 Claude Code</summary>
 
-Both launchers pass `--settings` rather than exported env vars — **Claude Code reads env from `~/.claude/settings.json`, and that wins over your shell**, so an `export` is silently ignored if that file already sets `ANTHROPIC_BASE_URL`. Your existing config is left alone; a plain `claude` still uses it.
+两个启动器都用 `--settings` 而不是导出环境变量——**Claude Code 是从 `~/.claude/settings.json` 读环境变量的，那个文件优先级高于你的 shell**，所以如果那里已经设了 `ANTHROPIC_BASE_URL`，`export` 会被静默忽略。你原有的配置不会被改，直接敲 `claude` 仍然走原配置。
 
 ```bash
 claude --settings ./claude/zen-proxy.settings.json
 ```
 
-The generated picker comes from `bin/make-settings.mjs`, which reads the live model list from the proxy (falling back to `models.json`). Each row sets `behavesAs` so Claude Code handles an unfamiliar model id sensibly while still sending that exact id upstream.
+选择器由 `bin/make-settings.mjs` 生成，它从代理读实时模型列表（读不到就退回 `models.json`）。每一行会设置 `behavesAs`，让 Claude Code 能合理处理不认识的模型 id，同时上游收到的仍是那个确切的 id。
 
-If `zen-claude` says `command not found`, check `ls -l ~/.local/bin/zen-claude` first — if the symlink is missing, re-run the installer. Only if it exists is it a stale `PATH`:
+如果 `zen-claude` 报 `command not found`，先看 `ls -l ~/.local/bin/zen-claude`——符号链接不存在就重跑安装脚本；只有链接存在时才是 `PATH` 旧了：
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"                          # this terminal
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc      # permanent
+export PATH="$HOME/.local/bin:$PATH"                          # 当前终端
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc      # 永久
 ```
 </details>
 
 ---
 
+## 常见问题
+
+**报 403 FreeTierError**：请求没被认成 OpenCode 客户端。检查端点是不是 v2 基址、`agentTools` 是否开启。
+
+**报 429 FreeUsageLimitError 但自己感觉没用多少**：这条既可能是额度真用完了，也可能是闸门拒绝，两者返回一模一样。先确认是用 Bun 启动的，再看面板「统计」页今天实际消耗了多少。
+
+**代理能用但客户端说没有工具调用**：本版只保留客户端自己提供过的工具调用。客户端用自定义工具名时建议固定调用（`tool_choice`），否则模型可能只输出思考就停下。
+
+**改了面板看不到变化**：界面 HTML 是启动时读进内存的，改完必须重启代理。
+
+---
+
 <p align="center">
-  <sub>💬 <a href="https://discord.gg/Dw5Ctrtuw">Join the Discord</a> — install help, troubleshooting, and which free model is fast right now.</sub>
-  <br />
-  <sub>The demo video up top was built using the brag skill.</sub>
+  <sub>机器可读：[llms.txt](llms.txt) &nbsp;·&nbsp; [llms-full.txt](llms-full.txt)</sub>
 </p>
 
 <p align="center">
-  <sub>Machine-readable: <a href="llms.txt">llms.txt</a> &nbsp;·&nbsp; <a href="llms-full.txt">llms-full.txt</a></sub>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b8b8b?style=flat-square&labelColor=1a1612" alt="MIT License"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/12errh/zen-proxy/issues">
-    <img src="https://img.shields.io/github/issues/12errh/zen-proxy?style=flat-square&labelColor=1a1612&color=8b8b8b" alt="Open issues">
-  </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-8b8b8b?style=flat-square&labelColor=1a1612" alt="MIT License">
-  </a>
+  <sub>基于 <a href="https://github.com/12errh/zen-proxy">12errh/zen-proxy</a>，MIT 许可。</sub>
 </p>
