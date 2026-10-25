@@ -475,7 +475,14 @@ function sanitize(cfg) {
 }
 
 const ALLOWED = () => new Set([...config.fallbackModels, ...Object.values(config.modelAliases)])
-const requestStats = { total: 0, errors: 0, recent: [], perMinute: new Map(), window60: [] }
+const requestStats = {
+  total: 0,
+  errors: 0,
+  recent: [],
+  perMinute: new Map(),
+  window60: [],
+  tokens: { in: 0, out: 0, cached: 0, think: 0 },
+}
 // jev-* free models are served on /v1/systemone (structured classification),
 // not on a chat/responses endpoint, so they are never routable here.
 const NOT_CHAT_SERVABLE = [/^jev-/]
@@ -1171,17 +1178,116 @@ function log(message) {
   console.log(line.msg)
 }
 
-function recordReq(req, model, ms, status, at = Date.now()) {
+// ---- token usage accounting (local addition; upstream ships none) ----
+// Upstream reports usage two ways: chat uses prompt_tokens/completion_tokens,
+// the Responses API uses input_tokens/output_tokens. Everything below speaks
+// one shape.
+function normUsage(u) {
+  if (!u || typeof u !== "object") return null
+  const det = u.prompt_tokens_details ?? u.input_tokens_details ?? {}
+  const cdet = u.completion_tokens_details ?? u.output_tokens_details ?? {}
+  const inp = num(u.prompt_tokens ?? u.input_tokens, 0)
+  const out = num(u.completion_tokens ?? u.output_tokens, 0)
+  if (inp <= 0 && out <= 0) return null
+  return {
+    in: Math.max(0, inp),
+    out: Math.max(0, out),
+    cached: Math.max(0, num(det.cached_tokens, 0)),
+    think: Math.max(0, num(cdet.reasoning_tokens, 0)),
+  }
+}
+
+// requestStats dies with the process, so a per-hour ledger is what makes
+// "how much this week" answerable. ~900KB/year at one bucket per hour, which
+// is why there is no retention knob.
+const HOUR_MS = 3_600_000
+const USAGE_PATH = process.env.ZEN_PROXY_USAGE_PATH || path.join(__dirname, "usage-history.json")
+const usageHist = new Map()
+let usageDirty = false
+let usageWritten = 0
+
+function addUsage(at, ms, status, u) {
+  const h = Math.floor(at / HOUR_MS) * HOUR_MS
+  let b = usageHist.get(h)
+  if (!b) usageHist.set(h, (b = { req: 0, err: 0, in: 0, out: 0, cached: 0, think: 0, ms: 0 }))
+  b.req++
+  if (status >= 400) b.err++
+  b.in += u.in
+  b.out += u.out
+  b.cached += u.cached
+  b.think += u.think
+  b.ms += ms > 0 ? ms : 0
+  usageDirty = true
+}
+
+function saveUsage() {
+  if (!usageDirty) return
+  const rows = [...usageHist.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([h, b]) => [h, b.req, b.err, b.in, b.out, b.cached, b.think, b.ms])
+  const tmp = USAGE_PATH + ".tmp"
+  try {
+    // Write-then-rename: a crash mid-write leaves the previous file intact.
+    fs.writeFileSync(tmp, JSON.stringify({ v: 1, written: Date.now(), hours: rows }))
+    fs.renameSync(tmp, USAGE_PATH)
+    usageDirty = false
+    usageWritten = Date.now()
+  } catch (e) {
+    log("usage history save failed: " + e.message)
+  }
+}
+
+function loadUsage() {
+  let raw
+  try {
+    raw = fs.readFileSync(USAGE_PATH, "utf8")
+  } catch {
+    return
+  }
+  try {
+    const j = JSON.parse(raw)
+    for (const row of j?.hours ?? []) {
+      const at = Number(row[0])
+      if (!Number.isFinite(at)) continue
+      usageHist.set(at, {
+        req: num(row[1], 0), err: num(row[2], 0), in: num(row[3], 0), out: num(row[4], 0),
+        cached: num(row[5], 0), think: num(row[6], 0), ms: num(row[7], 0),
+      })
+    }
+    usageWritten = num(j?.written, 0)
+  } catch {
+    const bad = USAGE_PATH + ".bad-" + Date.now()
+    try {
+      fs.renameSync(USAGE_PATH, bad)
+      log("usage history unreadable, starting fresh (previous file kept as " + path.basename(bad) + ")")
+    } catch {
+      log("usage history unreadable and could not be set aside")
+    }
+    usageHist.clear()
+  }
+}
+function recordReq(req, model, ms, status, at = Date.now(), usage = null) {
+  const u = usage ?? { in: 0, out: 0, cached: 0, think: 0 }
   const entry = { at, ip: clientIp(req), model, status, ms }
   const key = `${entry.at}|${entry.model}|${entry.status}`
-  if (!requestStats.recent.length || requestStats.recent[requestStats.recent.length - 1][0] !== key) {
-    requestStats.recent.push([key, 1, ms])
+  const last = requestStats.recent[requestStats.recent.length - 1]
+  if (!last || last[0] !== key) {
+    requestStats.recent.push([key, 1, ms, u.in, u.out, u.cached, u.think])
     if (requestStats.recent.length > 200) requestStats.recent.shift()
   } else {
-    requestStats.recent[requestStats.recent.length - 1][1]++
-    requestStats.recent[requestStats.recent.length - 1][2] = ms
+    last[1]++
+    last[2] = ms
+    last[3] += u.in
+    last[4] += u.out
+    last[5] += u.cached
+    last[6] += u.think
   }
   requestStats.total++
+  requestStats.tokens.in += u.in
+  requestStats.tokens.out += u.out
+  requestStats.tokens.cached += u.cached
+  requestStats.tokens.think += u.think
+  addUsage(entry.at, ms, status, u)
   if (status >= 400) requestStats.errors++
   const minute = Math.floor(entry.at / 60000)
   requestStats.perMinute.set(minute, (requestStats.perMinute.get(minute) ?? 0) + 1)
@@ -1463,7 +1569,7 @@ async function handleMessages(req, res) {
           // surprises.
           relayAnthropicStream(req, res, chunks, requested, model, bridged, pin, keepable).catch(() => {})
           res.on("finish", () => {
-            recordReq(req, `${requested}→${model}`, Date.now() - start, 200)
+            recordReq(req, `${requested}→${model}`, Date.now() - start, 200, undefined, normUsage(res._zenUsage))
             recordObserved(model, true)
           })
           return
@@ -1471,7 +1577,7 @@ async function handleMessages(req, res) {
         try {
           const content = format === "responses" ? await collectResponses(upstreamRes) : await collectChatCompletion(upstreamRes)
           const shaped = stripUnpinnedCalls(stripToolCalls(format === "responses" ? responsesToChat(content, requested, model) : content, bridged), pin, keepable)
-          recordReq(req, `${requested}→${model}`, Date.now() - start, 200)
+          recordReq(req, `${requested}→${model}`, Date.now() - start, 200, undefined, normUsage(content?.usage))
           recordObserved(model, true)
           if (model !== requested) {
             res.setHeader?.("x-zen-served-by", model)
@@ -1689,13 +1795,13 @@ async function handleChat(req, res, responsesRoute = false) {
           } else {
             relayStream(req, res, upstreamRes, requested, bridged, pin, keepable).catch(() => {})
           }
-          res.on("finish", () => { recordReq(req, `${requested}→${model}`, Date.now() - start, 200); recordObserved(model, true) })
+          res.on("finish", () => { recordReq(req, `${requested}→${model}`, Date.now() - start, 200, undefined, normUsage(res._zenUsage)); recordObserved(model, true) })
           return
         }
         try {
           const content = format === "responses" ? await collectResponses(upstreamRes) : await collectChatCompletion(upstreamRes)
           if (format === "responses") {
-            recordReq(req, `${requested}→${model}`, Date.now() - start, 200)
+            recordReq(req, `${requested}→${model}`, Date.now() - start, 200, undefined, normUsage(content?.usage))
             recordObserved(model, true)
             if (model !== requested) {
               res.setHeader?.("x-zen-served-by", model)
@@ -1728,7 +1834,7 @@ async function handleChat(req, res, responsesRoute = false) {
             shaped.model = requested
             if (model !== requested) shaped.zen_served_by = model
           }
-          recordReq(req, `${requested}→${model}`, Date.now() - start, 200)
+          recordReq(req, `${requested}→${model}`, Date.now() - start, 200, undefined, normUsage(content?.usage))
           recordObserved(model, true)
           return json(res, 200, shaped)
         } catch (err) {
@@ -2078,6 +2184,7 @@ function relayAnthropicStream(req, res, chunks, requested, servedBy, strip = fal
             // clean end_turn. Reaching the catch emits the real `error` event.
             if (d.error) throw new Error(d.error.message ?? "upstream stream error")
             if (d.usage) st.usage = d.usage
+            if (d.usage) res._zenUsage = d.usage
             const choice = d.choices?.[0]
             const delta = choice?.delta ?? {}
             // The bridge tools exist only to satisfy the gate; a caller that
@@ -2357,7 +2464,7 @@ function relayStream(req, res, upstreamRes, requested, strip = false, pin = null
           const block = buffer.slice(0, idx)
           buffer = buffer.slice(idx + 2)
           if (!upstreamErr) upstreamErr = chatBlockError(block)
-          const out = rewriteSSE(block, requested, strip, pinned)
+          const out = rewriteSSE(block, requested, strip, pinned, res)
           if (out) res.write(out)
           if (chatBlockTerminal(block)) sawFinish = true
         }
@@ -2535,6 +2642,7 @@ function relayResponsesStream(req, res, upstreamRes, requested, strip = false, p
             continue
           }
           if (data?.response?.usage) state.usage = data.response.usage
+          if (data?.response?.usage) res._zenUsage = data.response.usage
           if (data?.type === "response.completed" || data?.type === "response.incomplete") {
             sawFinish = true
             // `strip` (the tool-less bridge) and the pinned filter both swallow
@@ -2676,6 +2784,7 @@ function relayChatAsResponsesStream(req, res, upstreamRes, requested, strip = fa
         }
         if (d?.error) throw new Error(d.error.message ?? "upstream stream error")
         if (d?.usage) st.usage = d.usage
+        if (d?.usage) res._zenUsage = d.usage
         const choice = d?.choices?.[0]
         if (!choice) continue
         const delta = choice.delta ?? {}
@@ -2907,7 +3016,7 @@ function relayResponsesPassthrough(req, res, upstreamRes, requested, strip = fal
   return pump()
 }
 
-function rewriteSSE(block, requested, strip = false, pinState = null) {
+function rewriteSSE(block, requested, strip = false, pinState = null, usageSink = null) {
   if (!block.trim()) return null
   const lines = block.split("\n")
   const out = []
@@ -2920,6 +3029,7 @@ function rewriteSSE(block, requested, strip = false, pinState = null) {
       }
       try {
         const parsed = JSON.parse(payload)
+        if (usageSink && parsed?.usage) usageSink._zenUsage = parsed.usage
         if (parsed && typeof parsed === "object" && "model" in parsed) parsed.model = requested
         stripToolCalls(parsed, strip)
         if (pinState) filterPinnedDelta(parsed, pinState)
@@ -3331,8 +3441,93 @@ async function handleStatus(req, res) {
       observed: Object.fromEntries(observed),
       error: syncState.error,
     },
-    requests: { total: requestStats.total, errors: requestStats.errors, lastMinute, last5m },
-    recent: requestStats.recent.map(([k, count, ms]) => ({ ...parseKey(k), count, ms })),
+    requests: { total: requestStats.total, errors: requestStats.errors, lastMinute, last5m, tokens: { ...requestStats.tokens } },
+    recent: requestStats.recent.map(([k, count, ms, tin, tout, tcached, tthink]) => ({
+      ...parseKey(k), count, ms, in: tin ?? 0, out: tout ?? 0, cached: tcached ?? 0, think: tthink ?? 0,
+    })),
+  })
+}
+
+const DAY_MS = 86_400_000
+function startOfDay(ts) {
+  const d = new Date(ts)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+// Monday-first, which is what a Chinese calendar reader expects from 本周.
+function startOfWeek(ts) {
+  const day = startOfDay(ts)
+  const wd = (new Date(day).getDay() + 6) % 7
+  return day - wd * DAY_MS
+}
+function startOfMonth(ts) {
+  const d = new Date(startOfDay(ts))
+  d.setDate(1)
+  return d.getTime()
+}
+const USAGE_RANGES = {
+  today: (now) => startOfDay(now),
+  "3d": (now) => now - 3 * DAY_MS,
+  week: (now) => startOfWeek(now),
+  month: (now) => startOfMonth(now),
+  "30d": (now) => now - 30 * DAY_MS,
+  all: () => 0,
+}
+function emptyAgg() {
+  return { req: 0, err: 0, in: 0, out: 0, cached: 0, think: 0, ms: 0 }
+}
+function intoAgg(dst, src) {
+  dst.req += src.req
+  dst.err += src.err
+  dst.in += src.in
+  dst.out += src.out
+  dst.cached += src.cached
+  dst.think += src.think
+  dst.ms += src.ms
+  return dst
+}
+// Hour buckets are dense enough to re-bucket on every read; a year of them is a
+// few thousand entries, so no index is worth maintaining.
+function handleUsage(req, res) {
+  if (!adminAuth(req, res)) return
+  const url = new URL(req.url, "http://" + (req.headers.host ?? "localhost"))
+  const asked = url.searchParams.get("range")
+  const name = USAGE_RANGES[asked] ? asked : "today"
+  const now = Date.now()
+  const from = USAGE_RANGES[name](now)
+  const to = now
+  const buckets = [...usageHist.entries()].filter(([h]) => h >= from && h <= to)
+  const earliest = usageHist.size ? Math.min(...usageHist.keys()) : 0
+  // "all" has no lower bound of its own, so it starts at the first hour that
+  // actually has data rather than at the epoch.
+  const lo = from > 0 ? from : earliest
+  // Four days and under stay hourly, which keeps today's idle hours visible as
+  // gaps instead of one fat bar.
+  const hourly = to - lo <= 96 * HOUR_MS
+  let step = hourly ? HOUR_MS : DAY_MS
+  if (Math.ceil((to - lo) / step) > 400) step = Math.ceil((to - lo) / 400 / DAY_MS) * DAY_MS
+  const origin = hourly ? Math.floor(lo / HOUR_MS) * HOUR_MS : startOfDay(lo)
+  const agg = new Map()
+  const totals = emptyAgg()
+  for (const [h, b] of buckets) {
+    const k = hourly ? h : Math.floor(startOfDay(h) / step) * step
+    if (!agg.has(k)) agg.set(k, emptyAgg())
+    intoAgg(agg.get(k), b)
+    intoAgg(totals, b)
+  }
+  const series = []
+  for (let t = origin; t <= to; t += step) series.push({ t, ...(agg.get(t) ?? emptyAgg()) })
+  json(res, 200, {
+    ok: true,
+    range: name,
+    from: lo,
+    to,
+    bucket: hourly ? "hour" : "day",
+    step,
+    totals,
+    series,
+    written: usageWritten,
+    persisted: fs.existsSync(USAGE_PATH),
   })
 }
 
@@ -3468,6 +3663,7 @@ async function router(req, res) {
   if (p.startsWith("/api/")) {
     if (p === "/api/config") return handleApiConfig(req, res)
     if (p === "/api/status" && req.method === "GET") return handleStatus(req, res)
+    if (p === "/api/usage" && req.method === "GET") return handleUsage(req, res)
     if (p === "/api/test" && req.method === "POST") return handleTest(req, res)
     if (p === "/api/logs" && req.method === "GET") return handleLogs(req, res)
     if (p === "/api/sync" && req.method === "POST") {
@@ -3539,6 +3735,18 @@ server.on("error", (err) => {
 })
 
 if (isMain) {
+  loadUsage()
+  // Coalesced, not per-request: a streaming burst would otherwise touch the
+  // disk every few chunks. saveUsage is a no-op while nothing changed. A forced
+  // kill (taskkill /F) cannot run these hooks, so the last ~10s of usage is lost.
+  setInterval(saveUsage, 10_000).unref()
+  process.on("exit", saveUsage)
+  for (const sig of ["SIGINT", "SIGTERM"]) {
+    process.on(sig, () => {
+      saveUsage()
+      process.exit(0)
+    })
+  }
   server.listen(config.port, config.host, () => {
     log(`zen-proxy listening on http://${config.host}:${config.port}`)
     log(`upstream ${config.upstream}  UA ${config.ua}  default ${config.defaultModel || "(auto)"}`)

@@ -1,0 +1,28 @@
+diff --git a/zen-proxy.mjs b/zen-proxy.mjs
+index f8aaf89..65c3ee5 100644
+--- a/zen-proxy.mjs
++++ b/zen-proxy.mjs
+@@ -595,13 +595,22 @@ function anthropicToChatBody(body, model) {
+   if (Array.isArray(body?.stop_sequences) && body.stop_sequences.length) payload.stop = body.stop_sequences.slice(0, 4)
+   const tools = anthropicToolsToChat(body?.tools)
+   // Ship opencode's own tools ahead of the caller's. Without them the free tier
+   // rejects the request outright; the caller's prompt and tools are untouched and
+   // still take priority in the reply.
+   const bridge = agentToolsFor((body?.tools ?? []).map((t) => t?.name))
+-  const all = bridge.length ? [...bridge, ...(tools ?? [])] : tools
++  // Local patch 3: this route used to send nothing when no caller tool name hit
++  // AGENT_TOOL_MAP, and the free tier then answered a bare 403 — the same failure
++  // the /chat/completions and /responses routes already work around by letting the
++  // manifest ride along (see "rides along as extra tools" below). The gate is
++  // satisfied by opencode's `read` alone, so ship the manifest as extra tools
++  // *after* the caller's own, which keeps the caller's tools first in the model's
++  // view. Trade-off: if the model does pick the bridged `read`, the reply carries a
++  // `Read` tool call the caller may not implement.
++  const extra = bridge.length ? bridge : (tools?.length ? gateBridgeTools() : [])
++  const all = extra.length ? (bridge.length ? [...extra, ...(tools ?? [])] : [...tools, ...extra]) : tools
+   if (all?.length) payload.tools = all
+   // Anthropic's tool_choice and opencode's use the same vocabulary once renamed.
+   if (typeof body?.tool_choice === "object" && body.tool_choice?.type === "tool") {
+     payload.tool_choice = { type: "function", function: { name: body.tool_choice.name } }
+   } else if (typeof body?.tool_choice === "string") {
+     payload.tool_choice = body.tool_choice

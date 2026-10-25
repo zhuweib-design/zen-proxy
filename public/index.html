@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Zen Proxy — the free-tier hype machine</title>
+<title>Zen Proxy — 免费额度中转面板</title>
 <link rel="icon" href="/assets/favicon.png">
 <style>
 :root {
@@ -18,18 +18,63 @@
   --sky:#8fd9ff;
   --muted:#7d7461;
   --line:2px solid var(--ink);
+  /* Everything below is a colour that used to be hardcoded per rule. They live
+     here so the dark theme only has to redefine tokens, not hunt down literals. */
+  --dot:rgba(26,22,18,.09);
+  --field:#fff;
+  --headerbg:rgba(239,232,217,.86);
+  --codebg:rgba(26,22,18,.08);
+  --hairline:rgba(26,22,18,.35);
+  --rowhover:rgba(204,247,58,.25);
+  --rowhover-soft:rgba(204,247,58,.08);
+  --tipbg:rgba(26,22,18,.6);
+  --on-accent:#fff;
+  --on-bright:#1a1612;
+  --on-acid:#1a1612;
+  --acid-line:var(--acid);
+  --shadow:var(--ink);
   --sans:"Helvetica Neue",Helvetica,"Segoe UI",Arial,sans-serif;
   --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
   --spring:cubic-bezier(.34,1.56,.64,1);
   --smooth:cubic-bezier(.16,1,.3,1);
 }
+/* Dark is the same poster layout on a dimmer wall: --ink flips to a light
+   colour, which is what the borders and hard shadows already read from. */
+html[data-theme="dark"] {
+  --paper:#15120e;
+  --paper2:#1c1813;
+  --card:#221d16;
+  --ink:#ece4d3;
+  --ink2:#c6bda7;
+  --acid:#3f611c;
+  --acid-line:#b4cf45;
+  --on-acid:#eaf2da;
+  --coral:#ff7a5c;
+  --grape:#a894ff;
+  --sky:#7ecbea;
+  --muted:#a29883;
+  --dot:rgba(236,228,211,.1);
+  --field:#2a241c;
+  --headerbg:rgba(21,18,14,.86);
+  --codebg:rgba(236,228,211,.1);
+  --hairline:rgba(236,228,211,.28);
+  --rowhover:rgba(201,242,60,.16);
+  --rowhover-soft:rgba(201,242,60,.07);
+  --tipbg:rgba(236,228,211,.14);
+  --on-accent:#15120e;
+  --on-bright:#15120e;
+  --shadow:rgba(236,228,211,.3);
+}
+html[data-theme="dark"] .blobs div { opacity:.26 }
+/* The marker highlight would otherwise sit under a light glyph and swallow it. */
+html[data-theme="dark"] .panel h2 .hh { background:linear-gradient(transparent 62%, color-mix(in srgb, var(--acid-line) 26%, transparent) 62%) }
 * { box-sizing:border-box; margin:0; padding:0 }
 html,body { min-height:100% }
 body {
   font-family:var(--sans); background:var(--paper); color:var(--ink);
   font-size:14px; line-height:1.5; overflow-x:hidden;
-  background-image:radial-gradient(rgba(26,22,18,.09) 1px, transparent 1.3px);
+  background-image:radial-gradient(var(--dot) 1px, transparent 1.3px);
   background-size:22px 22px;
 }
 a { color:var(--ink) }
@@ -55,7 +100,7 @@ header {
   position:sticky; top:0; z-index:40;
   display:flex; align-items:center; gap:14px;
   max-width:1120px; margin:0 auto; padding:14px 18px;
-  background:rgba(239,232,217,.86); border-bottom:var(--line);
+  background:var(--headerbg); border-bottom:var(--line);
   -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
 }
 .brand { display:flex; align-items:center; gap:10px; white-space:nowrap }
@@ -76,7 +121,7 @@ nav.capsule::-webkit-scrollbar { display:none }
 .nav-indicator {
   position:absolute; top:5px; left:0; height:calc(100% - 10px); border-radius:999px;
   background:var(--acid); border:2px solid var(--ink);
-  box-shadow:3px 3px 0 var(--ink);
+  box-shadow:3px 3px 0 var(--shadow);
   transition:transform .6s var(--spring), width .6s var(--spring);
   pointer-events:none; z-index:0;
 }
@@ -89,22 +134,22 @@ nav button {
 }
 nav button:hover { color:var(--ink) }
 nav button:active { transform:scale(.92) }
-nav button.active { color:var(--ink) }
+nav button.active { color:var(--on-acid) }
 .pill {
   display:inline-flex; align-items:center; gap:8px; padding:8px 15px; white-space:nowrap;
   background:var(--card); border:var(--line); border-radius:999px;
-  box-shadow:3px 3px 0 var(--ink);
+  box-shadow:3px 3px 0 var(--shadow);
   font-family:var(--mono); font-weight:800; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
 }
 .pill .dot { width:9px; height:9px; border-radius:50%; background:var(--muted) }
-.dot.ok { background:var(--ink); box-shadow:0 0 0 2px var(--acid) }
+.dot.ok { background:var(--ink); box-shadow:0 0 0 2px var(--acid-line) }
 .dot.bad { background:var(--coral) }
 
 /* ---------- marquee strip ---------- */
 .marquee {
   position:relative; max-width:1084px; margin:22px auto 0; overflow:hidden;
-  border:var(--line); background:var(--acid); color:var(--ink);
-  transform:rotate(-.6deg); box-shadow:5px 5px 0 var(--ink);
+  border:var(--line); background:var(--acid); color:var(--on-acid);
+  transform:rotate(-.6deg); box-shadow:5px 5px 0 var(--shadow);
 }
 .mq-track {
   display:flex; width:max-content; animation:mq 26s linear infinite; will-change:transform;
@@ -118,9 +163,9 @@ nav button.active { color:var(--ink) }
 main { max-width:1120px; margin:28px auto 70px; padding:0 18px }
 .banner {
   display:none; max-width:1084px; margin:22px auto 0; padding:13px 18px;
-  border:var(--line); background:var(--coral); color:#fff;
+  border:var(--line); background:var(--coral); color:var(--on-accent);
   font-family:var(--mono); font-weight:800; font-size:12px; letter-spacing:.06em; text-transform:uppercase;
-  box-shadow:5px 5px 0 var(--ink); transform:rotate(-.4deg);
+  box-shadow:5px 5px 0 var(--shadow); transform:rotate(-.4deg);
 }
 .banner.error { display:block }
 
@@ -140,13 +185,13 @@ main { max-width:1120px; margin:28px auto 70px; padding:0 18px }
 .card {
   position:relative; padding:20px; min-width:0;
   background:var(--card); border:var(--line); border-radius:22px 8px 22px 8px;
-  box-shadow:8px 8px 0 var(--ink);
+  box-shadow:8px 8px 0 var(--shadow);
   transform:rotate(var(--tilt,0));
   transition:transform .35s var(--smooth), box-shadow .35s var(--smooth);
 }
 .card:nth-child(odd) { --tilt:-.7deg }
 .card:nth-child(even) { --tilt:.6deg }
-.card:hover { transform:translateY(-4px) rotate(0deg); box-shadow:12px 12px 0 var(--ink) }
+.card:hover { transform:translateY(-4px) rotate(0deg); box-shadow:12px 12px 0 var(--shadow) }
 .card .label {
   font-family:var(--mono); font-size:10px; font-weight:800; color:var(--muted);
   text-transform:uppercase; letter-spacing:.14em; display:flex; align-items:center; gap:6px;
@@ -156,40 +201,41 @@ main { max-width:1120px; margin:28px auto 70px; padding:0 18px }
 .card .value.mono { font-size:14px; letter-spacing:0; text-transform:none; font-weight:800; overflow-wrap:anywhere; word-break:break-word; line-height:1.4 }
 .card .sub { font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:8px; text-transform:uppercase; letter-spacing:.08em }
 .cards .card.hero {
-  background:var(--acid);
+  background:var(--acid); color:var(--on-acid);
 }
-.cards .card.hero .label { color:var(--ink) }
-.cards .card.hero .sub { color:var(--ink) }
+.cards .card.hero .value { color:var(--on-acid) }
+.cards .card.hero .label { color:var(--on-acid) }
+.cards .card.hero .sub { color:color-mix(in srgb, var(--on-acid) 72%, transparent) }
 
 /* ---------- panels ---------- */
 .panel {
   position:relative; padding:26px; margin-bottom:24px;
   background:var(--card); border:var(--line); border-radius:26px 10px 26px 10px;
-  box-shadow:9px 9px 0 var(--ink);
+  box-shadow:9px 9px 0 var(--shadow);
 }
 .panel h2 {
   display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;
   font-family:var(--mono); font-size:12.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
 }
 .panel h2 .hh {
-  padding:0 8px; background:linear-gradient(transparent 62%, rgba(204,247,58,.85) 62%);
+  padding:0 8px; background:linear-gradient(transparent 62%, color-mix(in srgb, var(--acid) 85%, transparent) 62%);
 }
 .hint { font-family:var(--mono); font-size:11.5px; color:var(--muted); margin-top:8px; line-height:1.7 }
-code { background:rgba(26,22,18,.08); padding:1px 5px; border-radius:4px; font-family:var(--mono); font-size:.95em }
+code { background:var(--codebg); padding:1px 5px; border-radius:4px; font-family:var(--mono); font-size:.95em }
 
 /* ---------- table ---------- */
 table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums }
 th,td { text-align:left; padding:12px 12px; border-bottom:var(--line); font-size:13px }
-th { font-family:var(--mono); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--muted) }
-td { border-bottom:1px dashed rgba(26,22,18,.35) }
+th { font-family:var(--mono); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); white-space:nowrap }
+td { border-bottom:1px dashed var(--hairline) }
 tbody tr { transition:background .18s }
-tbody tr:hover { background:rgba(204,247,58,.25) }
+tbody tr:hover { background:var(--rowhover) }
 tbody tr:last-child td { border-bottom:none }
 .mono { font-family:var(--mono); font-size:12.5px }
 .badge { display:inline-block; padding:3px 11px; border-radius:999px; font-family:var(--mono); font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase }
-.badge.ok { background:var(--acid); color:var(--ink); border:2px solid var(--ink) }
-.badge.bad { background:var(--coral); color:#fff; border:2px solid var(--ink) }
-.badge.warn { background:var(--grape); color:var(--ink); border:2px solid var(--ink) }
+.badge.ok { background:var(--acid); color:var(--on-acid); border:2px solid var(--ink) }
+.badge.bad { background:var(--coral); color:var(--on-accent); border:2px solid var(--ink) }
+.badge.warn { background:var(--grape); color:var(--on-bright); border:2px solid var(--ink) }
 .badge.mut { background:var(--paper2); color:var(--ink); border:2px solid var(--ink) }
 
 /* Tooltip — purpose-built for this dashboard. Sticker-card look that reuses the
@@ -205,7 +251,7 @@ tbody tr:last-child td { border-bottom:none }
   padding:8px 12px 9px;
   background:var(--paper); color:var(--ink);
   border:2px solid var(--ink); border-radius:10px;
-  box-shadow:3px 3px 0 var(--ink);
+  box-shadow:3px 3px 0 var(--shadow);
   text-align:left; pointer-events:none; z-index:70;
   opacity:0; visibility:hidden;
   transform:translate(-50%, 5px) scale(.96); transform-origin:50% 100%;
@@ -238,8 +284,8 @@ tbody tr:last-child td { border-bottom:none }
 
 .empty { font-family:var(--serif); font-style:italic; color:var(--muted); text-align:center; padding:38px; font-size:15px }
 .pager { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-top:16px }
-.pager button { padding:6px 13px; font-size:10.5px; box-shadow:3px 3px 0 var(--ink) }
-.pager button:active { box-shadow:0 0 0 var(--ink) }
+.pager button { padding:6px 13px; font-size:10.5px; box-shadow:3px 3px 0 var(--shadow) }
+.pager button:active { box-shadow:0 0 0 var(--shadow) }
 .pager-info { font-family:var(--mono); font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; white-space:nowrap }
 
 /* ---------- controls ---------- */
@@ -247,20 +293,20 @@ button {
   background:var(--ink); color:var(--card); border:2px solid var(--ink);
   padding:9px 16px; border-radius:10px; cursor:pointer;
   font-family:var(--mono); font-weight:800; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
-  box-shadow:4px 4px 0 var(--ink);
+  box-shadow:4px 4px 0 var(--shadow);
   transition:transform .2s var(--spring), box-shadow .2s, background .2s, color .2s;
 }
-button:hover { transform:translate(-1px,-1px); box-shadow:6px 6px 0 var(--ink) }
-button:active { transform:translate(2px,2px); box-shadow:0 0 0 var(--ink) }
-button:disabled { opacity:.45; cursor:not-allowed; transform:none; box-shadow:4px 4px 0 var(--ink) }
-button.primary { background:var(--acid); color:var(--ink); box-shadow:5px 5px 0 var(--ink) }
-button.primary:hover { box-shadow:7px 7px 0 var(--ink) }
+button:hover { transform:translate(-1px,-1px); box-shadow:6px 6px 0 var(--shadow) }
+button:active { transform:translate(2px,2px); box-shadow:0 0 0 var(--shadow) }
+button:disabled { opacity:.45; cursor:not-allowed; transform:none; box-shadow:4px 4px 0 var(--shadow) }
+button.primary { background:var(--acid); color:var(--on-acid); box-shadow:5px 5px 0 var(--shadow) }
+button.primary:hover { box-shadow:7px 7px 0 var(--shadow) }
 input, select, textarea {
-  background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:10px;
+  background:var(--field); color:var(--ink); border:2px solid var(--ink); border-radius:10px;
   padding:11px 13px; font-size:13.5px; width:100%; font-family:var(--sans);
   transition:box-shadow .2s, background .2s;
 }
-input:focus, select:focus, textarea:focus { outline:none; box-shadow:0 0 0 3px var(--acid) }
+input:focus, select:focus, textarea:focus { outline:none; box-shadow:0 0 0 3px var(--acid-line) }
 label {
   display:block; font-family:var(--mono); font-size:10.5px; font-weight:800; color:var(--ink2);
   margin:16px 0 7px; text-transform:uppercase; letter-spacing:.12em;
@@ -284,7 +330,7 @@ textarea { resize:vertical; min-height:96px; font-family:var(--mono); font-size:
 }
 .logs .ts { color:#8a806c; margin-right:14px }
 .logs .line { white-space:pre-wrap; word-break:break-all; padding:3px 0 }
-.logs .line:hover { background:rgba(204,247,58,.08) }
+.logs .line:hover { background:var(--rowhover-soft) }
 
 /* ---------- toast ---------- */
 .toast {
@@ -292,8 +338,8 @@ textarea { resize:vertical; min-height:96px; font-family:var(--mono); font-size:
   padding:15px 24px; border-radius:12px;
   font-family:var(--mono); font-weight:800; font-size:12px; letter-spacing:.06em;
   background:var(--ink); color:var(--card);
-  border:2px solid var(--ink); border-left:8px solid var(--acid);
-  box-shadow:6px 6px 0 var(--ink);
+  border:2px solid var(--ink); border-left:8px solid var(--acid-line);
+  box-shadow:6px 6px 0 var(--shadow);
   opacity:0; transform:translateY(12px) rotate(1deg); transition:.3s var(--spring); pointer-events:none;
 }
 .toast.show { opacity:1; transform:none }
@@ -303,29 +349,75 @@ textarea { resize:vertical; min-height:96px; font-family:var(--mono); font-size:
 .sticker {
   display:inline-block; padding:7px 16px;
   font-family:var(--mono); font-weight:800; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
-  background:var(--acid); border:2px solid var(--ink); border-radius:999px;
-  box-shadow:4px 4px 0 var(--ink); transform:rotate(-4deg);
+  background:var(--acid); color:var(--on-acid); border:2px solid var(--ink); border-radius:999px;
+  box-shadow:4px 4px 0 var(--shadow); transform:rotate(-4deg);
 }
-.sticker.coral { background:var(--coral); color:#fff; transform:rotate(3deg) }
-.sticker.grape { background:var(--grape); color:var(--ink); transform:rotate(-2deg) }
+.sticker.coral { background:var(--coral); color:var(--on-accent); transform:rotate(3deg) }
+.sticker.grape { background:var(--grape); color:var(--on-bright); transform:rotate(-2deg) }
 
 /* ---------- auth ---------- */
 #authScreen {
   position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center;
-  background:rgba(26,22,18,.6); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+  background:var(--tipbg); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
 }
 #authScreen .box { width:360px; padding:32px; background:var(--ink); color:var(--card);
-  border:2px solid var(--ink); border-radius:18px; box-shadow:12px 12px 0 var(--acid); animation:tabIn .5s var(--smooth) }
-#authScreen h2 { font-family:var(--mono); font-size:15px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px; color:var(--acid) }
+  border:2px solid var(--ink); border-radius:18px; box-shadow:12px 12px 0 var(--acid-line); animation:tabIn .5s var(--smooth) }
+#authScreen h2 { font-family:var(--mono); font-size:15px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px; color:var(--acid-line) }
 #authScreen p { color:#c9c1ae; font-size:13px; margin-bottom:20px }
 #authScreen .box input { background:#241f18; border-color:#4a4234; color:var(--card) }
-#authScreen .box input:focus { box-shadow:0 0 0 3px var(--acid) }
+#authScreen .box input:focus { box-shadow:0 0 0 3px var(--acid-line) }
+
+/* ---------- usage tab ---------- */
+#tab-usage h2 { justify-content:flex-start; gap:12px; flex-wrap:wrap }
+#usMetric { margin-left:auto }
+.chips { display:flex; gap:6px; flex-wrap:wrap; align-items:center }
+#usRange { margin:0 0 16px }
+.chip {
+  background:transparent; color:var(--muted); border:2px solid var(--ink2);
+  padding:5px 12px; border-radius:999px; box-shadow:none;
+  font-family:var(--mono); font-weight:800; font-size:10.5px; letter-spacing:.06em; text-transform:none;
+  transition:background .18s, color .18s, border-color .18s;
+}
+.chip:hover { transform:none; box-shadow:none; color:var(--ink); border-color:var(--ink) }
+.chip:active { transform:none; box-shadow:none }
+.chip.on { background:var(--ink); color:var(--card); border-color:var(--ink) }
+.chart { position:relative; min-height:120px }
+.chart svg { display:block; width:100%; height:auto; overflow:visible }
+.chart .grid { stroke:var(--ink2); stroke-opacity:.25; stroke-width:1 }
+.chart .axis { font-family:var(--mono); font-size:9.5px; fill:var(--muted) }
+.chart .bar-in { fill:var(--sky) }
+.chart .bar-cache { fill:var(--ink); fill-opacity:.22 }
+.chart .bar-out { fill:var(--acid-line) }
+.chart .bar-plain { fill:var(--grape) }
+.chart .bar-thru { fill:var(--coral) }
+.chart .line { fill:none; stroke:var(--ink); stroke-width:2; stroke-linejoin:round; stroke-linecap:round }
+.chart .dot { fill:var(--card); stroke:var(--ink); stroke-width:2 }
+.chart .col:hover rect { fill-opacity:.7 }
+.legend { display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; font-family:var(--mono); font-size:10.5px; color:var(--muted) }
+.legend i { display:inline-block; width:11px; height:11px; border:2px solid var(--ink); border-radius:3px; margin-right:6px; vertical-align:-1px }
+.legend i.bar-in { background:var(--sky) }
+.legend i.bar-cache { background:color-mix(in srgb, var(--ink) 22%, var(--sky)) }
+.legend i.bar-out { background:var(--acid-line) }
+.legend i.bar-plain { background:var(--grape) }
+.legend i.bar-thru { background:var(--coral) }
+.legend i.line { width:18px; height:3px; border:none; border-radius:2px; background:var(--ink); vertical-align:3px }
 
 @media (max-width:760px) {
   .brand .txt { display:none }
   main { padding:0 12px }
 }
 </style>
+<script>
+// Set the theme before first paint: a dark-preference visitor would otherwise
+// see one frame of the cream layout.
+(function () {
+  try {
+    const s = localStorage.getItem("zpTheme")
+    document.documentElement.dataset.theme = s === "light" || s === "dark" ? s
+      : window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  } catch { document.documentElement.dataset.theme = "light" }
+})()
+</script>
 </head>
 <body>
 
@@ -336,31 +428,33 @@ textarea { resize:vertical; min-height:96px; font-family:var(--mono); font-size:
 
 <div id="authScreen" style="display:none">
   <div class="box">
-    <img src="/assets/logo-128.png" alt="zen-proxy logo" style="width:56px;height:56px;border-radius:14px;border:2px solid var(--acid);box-shadow:3px 3px 0 var(--coral);margin-bottom:16px;object-fit:cover">
-    <h2>Locked 🔒</h2>
-    <p>This dashboard is protected. Enter the admin key (<code>PROXY_KEY</code>) to get in.</p>
-    <input type="password" id="authKey" placeholder="admin key" autocomplete="off">
+    <img src="/assets/logo-128.png" alt="zen-proxy 图标" style="width:56px;height:56px;border-radius:14px;border:2px solid var(--acid-line);box-shadow:3px 3px 0 var(--coral);margin-bottom:16px;object-fit:cover">
+    <h2>已上锁 🔒</h2>
+    <p>本面板已开启访问保护。输入管理员密钥（<code>PROXY_KEY</code>）进入。</p>
+    <input type="password" id="authKey" placeholder="管理员密钥" autocomplete="off">
     <div class="row" style="margin-top:20px">
-      <button class="primary grow" onclick="submitAuth()">Unlock</button>
+      <button class="primary grow" onclick="submitAuth()">解锁</button>
     </div>
   </div>
 </div>
 
 <header>
-  <div class="brand"><img src="/assets/logo-128.png" alt="zen-proxy logo" class="logo"><span class="txt">ZEN·PROXY</span></div>
+  <div class="brand"><img src="/assets/logo-128.png" alt="zen-proxy 图标" class="logo"><span class="txt">ZEN·PROXY</span></div>
   <nav class="capsule" id="nav">
     <div class="nav-indicator" id="navIndicator"></div>
-    <button data-tab="overview" class="active">Overview</button>
-    <button data-tab="models">Models</button>
-    <button data-tab="config">Settings</button>
-    <button data-tab="logs">Logs</button>
+    <button data-tab="overview" class="active">概览</button>
+    <button data-tab="usage">统计</button>
+    <button data-tab="models">模型</button>
+    <button data-tab="config">设置</button>
+    <button data-tab="logs">日志</button>
   </nav>
-  <span class="pill" id="upstreamPill"><span class="dot" id="upstreamDot"></span><span id="upstreamText">checking…</span></span>
+  <button class="chip" id="themeBtn" onclick="toggleTheme()" aria-label="切换配色">深色</button>
+  <span class="pill" id="upstreamPill"><span class="dot" id="upstreamDot"></span><span id="upstreamText">检测中…</span></span>
 </header>
 
 <div class="marquee" aria-hidden="true">
   <div class="mq-track">
-    <span>zen-proxy</span><span>◦</span><span>anonymous free tier</span><span>◦</span><span>no accounts</span><span>◦</span><span>no keys</span><span>◦</span><span>openai + anthropic compatible</span><span>◦</span><span>claude code</span><span>◦</span><span>100% local</span><span>◦</span><span>zen-proxy</span><span>◦</span><span>anonymous free tier</span><span>◦</span><span>no accounts</span><span>◦</span><span>no keys</span><span>◦</span><span>openai + anthropic compatible</span><span>◦</span><span>claude code</span><span>◦</span><span>100% local</span><span>◦</span>
+    <span>zen-proxy</span><span>◦</span><span>匿名免费额度</span><span>◦</span><span>无需账号</span><span>◦</span><span>无需密钥</span><span>◦</span><span>OpenAI + Anthropic 兼容</span><span>◦</span><span>claude code</span><span>◦</span><span>100% 本地运行</span><span>◦</span><span>zen-proxy</span><span>◦</span><span>匿名免费额度</span><span>◦</span><span>无需账号</span><span>◦</span><span>无需密钥</span><span>◦</span><span>OpenAI + Anthropic 兼容</span><span>◦</span><span>claude code</span><span>◦</span><span>100% 本地运行</span><span>◦</span>
   </div>
 </div>
 
@@ -369,99 +463,129 @@ textarea { resize:vertical; min-height:96px; font-family:var(--mono); font-size:
 <main>
   <section class="tab active" id="tab-overview">
     <div class="cards">
-      <div class="card hero"><div class="label">Requests served</div><div class="value" id="ovTotal">–</div><div class="sub" id="ovErr">0 errors</div></div>
-      <div class="card"><div class="label">Upstream</div><div class="value mono" id="ovUpstream">–</div><div class="sub" id="ovUa">–</div></div>
-      <div class="card"><div class="label">Uptime</div><div class="value" id="ovUptime">–</div><div class="sub">seconds online</div></div>
-      <div class="card"><div class="label">Last minute</div><div class="value" id="ovMin">–</div><div class="sub" id="ov5m">– in 5 min</div></div>
-      <div class="card"><div class="label">Models</div><div class="value" id="ovModels">–</div><div class="sub" id="ovAllowed">– allowed</div></div>
+      <div class="card hero"><div class="label">已处理请求</div><div class="value" id="ovTotal">–</div><div class="sub" id="ovErr">0 个错误</div></div>
+      <div class="card"><div class="label">上游</div><div class="value mono" id="ovUpstream">–</div><div class="sub" id="ovUa">–</div></div>
+      <div class="card"><div class="label">运行时长</div><div class="value" id="ovUptime">–</div><div class="sub">在线秒数</div></div>
+      <div class="card"><div class="label">最近一分钟</div><div class="value" id="ovMin">–</div><div class="sub" id="ov5m">– 近 5 分钟</div></div>
+      <div class="card"><div class="label">模型</div><div class="value" id="ovModels">–</div><div class="sub" id="ovAllowed">– 个可用</div></div>
     </div>
 
     <div class="panel">
-      <h2><span class="hh">Recent requests</span><span class="sticker grape" style="transform:none">live feed</span></h2>
+      <h2><span class="hh">最近请求</span><span class="sticker grape" style="transform:none">实时</span></h2>
       <table id="reqTable">
-        <thead><tr><th>Time</th><th>Model</th><th>Result</th><th>Latency</th><th>Count</th></tr></thead>
-        <tbody><tr><td colspan="5" class="empty">no requests yet — go make some noise.</td></tr></tbody>
+        <thead><tr><th>时间</th><th>模型</th><th>结果</th><th>耗时</th><th>输入</th><th>输出</th><th>次数</th></tr></thead>
+        <tbody><tr><td colspan="7" class="empty">还没有请求记录。</td></tr></tbody>
       </table>
       <div class="pager" id="reqPager"></div>
     </div>
   </section>
 
+  <section class="tab" id="tab-usage">
+    <div class="cards">
+      <div class="card hero"><div class="label">请求总数</div><div class="value" id="usReq">–</div><div class="sub" id="usErr">–</div></div>
+      <div class="card"><div class="label">输入 token</div><div class="value" id="usIn">–</div><div class="sub" id="usInSub">–</div></div>
+      <div class="card"><div class="label">缓存 token</div><div class="value" id="usCached">–</div><div class="sub" id="usCachedSub">–</div></div>
+      <div class="card"><div class="label">输出 token</div><div class="value" id="usOut">–</div><div class="sub" id="usOutSub">–</div></div>
+    </div>
+    <div class="panel">
+      <h2>
+        <span class="hh">用量趋势</span>
+        <span class="hint" id="usMeta">–</span>
+        <span class="chips" id="usMetric">
+          <button data-metric="tokens" class="chip on">Token</button>
+          <button data-metric="req" class="chip">请求数</button>
+          <button data-metric="throughput" class="chip">吞吐</button>
+        </span>
+      </h2>
+      <div class="chips" id="usRange">
+        <button data-range="today" class="chip on">今日</button>
+        <button data-range="3d" class="chip">近 3 日</button>
+        <button data-range="week" class="chip">本周</button>
+        <button data-range="month" class="chip">本月</button>
+        <button data-range="30d" class="chip">近 30 天</button>
+        <button data-range="all" class="chip">全部</button>
+      </div>
+      <div class="chart" id="usChart"></div>
+      <div class="legend" id="usLegend"></div>
+    </div>
+  </section>
+
   <section class="tab" id="tab-models">
     <div class="panel">
-      <h2><span class="hh">Allowed models</span><span class="badge mut" id="modelCount"></span></h2>
-      <p class="hint" style="margin-bottom:16px">These are served on <code>/v1/models</code> and accepted by the proxy. Hit <b>TEST</b> to send a tiny completion and see live status. The default model is used when a request asks for an unknown one. Auto-sync probes every upstream free model and prunes the dead ones automatically.</p>
+      <h2><span class="hh">可用模型</span><span class="badge mut" id="modelCount"></span></h2>
+      <p class="hint" style="margin-bottom:16px">这里列出 <code>/v1/models</code> 实际提供、且代理接受的模型。点 <b>测试</b> 会发一个极小的请求看实时状态。请求里写了未知模型时，会用默认模型兜底。自动同步会逐个探测上游免费模型，并自动剔除已下线的。</p>
       <div class="row" style="margin:0 0 16px;gap:12px">
-        <span class="badge mut" id="syncStatus">auto-sync: …</span>
-        <button id="syncBtn" style="margin-left:auto" onclick="syncNow()">⟳ Sync now</button>
+        <span class="badge mut" id="syncStatus">自动同步: …</span>
+        <button id="syncBtn" style="margin-left:auto" onclick="syncNow()">⟳ 立即同步</button>
       </div>
       <table id="modelTable">
-        <thead><tr><th>Model</th><th>Default</th><th>Last test</th><th></th></tr></thead>
+        <thead><tr><th>模型</th><th>默认</th><th>最近测试</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
       <div class="row" style="margin-top:18px">
-        <input class="grow" id="newModel" placeholder="add a model id, e.g. nemotron-3-ultra-free">
-        <button onclick="addModel()">+ Add</button>
+        <input class="grow" id="newModel" placeholder="输入模型 ID 添加，例如 nemotron-3-ultra-free">
+        <button onclick="addModel()">+ 添加</button>
       </div>
     </div>
   </section>
 
   <section class="tab" id="tab-config">
     <div class="panel">
-      <h2><span class="hh">Server settings</span><span class="sticker coral" style="transform:none">port / host need restart</span></h2>
+      <h2><span class="hh">服务端设置</span><span class="sticker coral" style="transform:none">改端口/Host 需重启</span></h2>
       <div class="formgrid">
         <div>
-          <label>Host</label><input id="cfgHost" type="text">
-          <label>Port</label><input id="cfgPort" type="number">
-          <label>Upstream url</label><input id="cfgUpstream" type="text">
-          <label>User-agent (the unlock)</label><input id="cfgUa" type="text">
+          <label>监听地址 Host</label><input id="cfgHost" type="text">
+          <label>端口 Port</label><input id="cfgPort" type="number">
+          <label>上游地址</label><input id="cfgUpstream" type="text">
+          <label>User-Agent（解锁的关键）</label><input id="cfgUa" type="text">
         </div>
         <div>
-          <label>Default model <span class="hint">(empty = auto-pick healthy free model)</span></label><input id="cfgDefault" type="text">
-          <label>Proxy key (empty = open)</label><input id="cfgProxyKey" type="password" autocomplete="new-password">
-          <label>Zen key (byok, optional)</label><input id="cfgZenKey" type="password" autocomplete="new-password">
+          <label>默认模型 <span class="hint">（留空 = 自动挑一个健康的免费模型）</span></label><input id="cfgDefault" type="text">
+          <label>面板访问密钥 Proxy key（留空 = 不鉴权）</label><input id="cfgProxyKey" type="password" autocomplete="new-password">
+          <label>Zen key（自带密钥，可选）</label><input id="cfgZenKey" type="password" autocomplete="new-password">
           <div class="row" style="gap:8px;margin-top:2px">
-            <button type="button" class="primary" onclick="testZenKey()" style="font-size:11px;padding:6px 10px">Test key</button>
+            <button type="button" class="primary" onclick="testZenKey()" style="font-size:11px;padding:6px 10px">测试密钥</button>
             <span class="hint mono" id="cfgAuth"></span>
             <span class="hint" id="zenKeyHint" style="min-height:16px"></span>
           </div>
-          <label>Timeout (ms)</label><input id="cfgTimeout" type="number">
+          <label>超时（毫秒）</label><input id="cfgTimeout" type="number">
         </div>
       </div>
-      <label>Fallback models (json array — tried in order on 429/5xx)</label>
+      <label>回退模型（JSON 数组，遇到 429/5xx 时按顺序尝试）</label>
       <textarea id="cfgFallback"></textarea>
-      <label>Model aliases (json map — e.g. {"gpt-4o":"space-bunny-free"})</label>
+      <label>模型别名（JSON 映射，例如 {"gpt-4o":"space-bunny-free"}）</label>
       <textarea id="cfgAliases"></textarea>
-      <div class="checkbox"><input type="checkbox" id="cfgTrust"><span>Trust <code>x-forwarded-for</code> from a reverse proxy</span></div>
-      <div class="checkbox"><input type="checkbox" id="cfgAutoSync"><span>Auto-sync models (probe upstream free models, prune dead ones)</span></div>
-      <label>Auto-sync interval (ms)</label><input id="cfgSyncMs" type="number">
-      <label>Health-probe credentials</label>
+      <div class="checkbox"><input type="checkbox" id="cfgTrust"><span>信任反向代理传来的 <code>x-forwarded-for</code></span></div>
+      <div class="checkbox"><input type="checkbox" id="cfgAutoSync"><span>自动同步模型（探测上游免费模型，剔除已下线的）</span></div>
+      <label>自动同步间隔（毫秒）</label><input id="cfgSyncMs" type="number">
+      <label>健康探测使用的凭据</label>
       <select id="cfgProbeAuth" style="width:100%">
-        <option value="auto">Auto — use my Zen key if set, else anonymous</option>
-        <option value="anonymous">Always anonymous (public free tier)</option>
-        <option value="key">Always my Zen key (tests my own quota)</option>
+        <option value="auto">自动 — 设了 Zen key 就用它，否则匿名</option>
+        <option value="anonymous">始终匿名（公共免费额度）</option>
+        <option value="key">始终用我的 Zen key（测的是我自己的额度）</option>
       </select>
-      <div class="checkbox"><input type="checkbox" id="cfgAutoUA"><span>Auto-track opencode releases &amp; update the User-Agent</span></div>
-      <label>User-agent refresh interval (ms)</label><input id="cfgUaMs" type="number">
-      <div class="checkbox"><input type="checkbox" id="cfgInject"><span>Inject <code>x-opencode-session</code> header per client (free tier needs it)</span></div>
-      <div class="checkbox"><input type="checkbox" id="cfgRateLimit"><span>Rate-limit chat requests per client (0 = off)</span></div>
+      <div class="checkbox"><input type="checkbox" id="cfgAutoUA"><span>自动跟随 opencode 新版本并更新 User-Agent</span></div>
+      <label>User-Agent 刷新间隔（毫秒）</label><input id="cfgUaMs" type="number">
+      <div class="checkbox"><input type="checkbox" id="cfgInject"><span>为每个客户端注入 <code>x-opencode-session</code> 头（免费额度需要）</span></div>
+      <div class="checkbox"><input type="checkbox" id="cfgRateLimit"><span>按客户端限流对话请求（0 = 关闭）</span></div>
       <div class="row" style="gap:10px;margin-top:6px">
-        <div><label>Requests / window</label><input id="cfgRateMax" type="number" min="0" style="width:120px"></div>
-        <div><label>Window (ms)</label><input id="cfgRateWindow" type="number" min="1000" style="width:140px"></div>
+        <div><label>每窗口请求数</label><input id="cfgRateMax" type="number" min="0" style="width:120px"></div>
+        <div><label>窗口时长（毫秒）</label><input id="cfgRateWindow" type="number" min="1000" style="width:140px"></div>
       </div>
-      <label>Responses-API models (json array — patterns may end in *)</label>
+      <label>Responses API 模型（JSON 数组，模式可用 * 结尾）</label>
       <textarea id="cfgResponses"></textarea>
       <div class="row" style="margin-top:22px">
-        <button class="primary" onclick="saveConfig()">Save &amp; apply</button>
-        <button onclick="reloadConfig()">Discard / reload</button>
-        <button onclick="restoreModels()" title="Re-add any model the proxy is missing (keeps your keys)">Restore model list</button>
+        <button class="primary" onclick="saveConfig()">保存并应用</button>
+        <button onclick="reloadConfig()">放弃并重载</button>
+        <button onclick="restoreModels()" title="把代理缺失的模型重新加回来（保留你的密钥）">恢复模型列表</button>
       </div>
     </div>
   </section>
 
   <section class="tab" id="tab-logs">
     <div class="panel">
-      <h2><span class="hh">Server logs</span><button style="font-size:10.5px; padding:6px 12px" onclick="loadLogs()">Refresh</button></h2>
-      <div class="logs" id="logBox"><div class="empty">Loading…</div></div>
+      <h2><span class="hh">服务端日志</span><button style="font-size:10.5px; padding:6px 12px" onclick="loadLogs()">刷新</button></h2>
+      <div class="logs" id="logBox"><div class="empty">加载中…</div></div>
     </div>
   </section>
 </main>
@@ -473,6 +597,34 @@ const $ = (id) => document.getElementById(id)
 let key = localStorage.getItem("zpKey") || ""
 let config = null
 let savedZenKeyMasked = ""
+
+// ---------- 配色主题 ----------
+const THEME_KEY = "zpTheme"
+function readStoredTheme() {
+  try {
+    const s = localStorage.getItem(THEME_KEY)
+    return s === "light" || s === "dark" ? s : null
+  } catch { return null }
+}
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t
+  const b = $("themeBtn")
+  if (b) b.textContent = t === "dark" ? "浅色" : "深色"
+}
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark"
+  try { localStorage.setItem(THEME_KEY, next) } catch {}
+  applyTheme(next)
+  // 图表的描边色取自变量，重绘一次才跟上新主题。
+  if (usageLast) drawUsage(usageLast)
+}
+applyTheme(document.documentElement.dataset.theme || "light")
+if (window.matchMedia) {
+  const mq = matchMedia("(prefers-color-scheme: dark)")
+  const follow = () => { if (!readStoredTheme()) applyTheme(mq.matches ? "dark" : "light") }
+  if (mq.addEventListener) mq.addEventListener("change", follow)
+  else if (mq.addListener) mq.addListener(follow)
+}
 
 function api(path, opts = {}) {
   const headers = { ...(opts.headers || {}) }
@@ -504,10 +656,10 @@ async function submitAuth() {
   try {
     await api("/api/status")
     $("authScreen").style.display = "none"
-    toast("Unlocked")
+    toast("已解锁")
     refreshAll()
   } catch {
-    toast("Wrong key", "bad")
+    toast("密钥错误", "bad")
     key = ""
     localStorage.removeItem("zpKey")
   }
@@ -529,23 +681,23 @@ async function refreshStatus() {
     const st = await api("/api/status")
     const dot = $("upstreamDot"), txt = $("upstreamText")
     dot.className = "dot " + (st.upstreamOk ? "ok" : "bad")
-    txt.textContent = st.upstreamOk ? "upstream OK" : "upstream DOWN"
+    txt.textContent = st.upstreamOk ? "上游正常" : "上游不可用"
     $("ovUpstream").textContent = st.upstream.replace(/^https?:\/\//, "")
     $("ovUpstream").title = st.upstream
     $("ovUpstream").dataset.host = new URL(st.upstream).host || st.upstream
     $("ovUa").textContent = "UA: " + st.ua
-    $("ovUa").title = st.uaAutoVersion && st.uaAutoVersion !== (st.ua.split("/")[1] || "") ? "latest opencode: " + st.uaAutoVersion : ""
+    $("ovUa").title = st.uaAutoVersion && st.uaAutoVersion !== (st.ua.split("/")[1] || "") ? "最新 opencode 版本: " + st.uaAutoVersion : ""
     $("ovUptime").textContent = fmtUp(st.uptime)
     $("ovTotal").textContent = st.requests.total
-    $("ovErr").textContent = st.requests.errors + " errors"
+    $("ovErr").textContent = st.requests.errors + " 个错误"
     $("ovMin").textContent = st.requests.lastMinute
-    $("ov5m").textContent = st.requests.last5m + " in 5 min"
+    $("ov5m").textContent = st.requests.last5m + " · 5 分钟内"
     $("ovModels").textContent = st.models.total
-    $("ovAllowed").textContent = st.models.allowed + " allowed"
+    $("ovAllowed").textContent = st.models.allowed + " 个可用"
     if (document.getElementById("tab-overview").classList.contains("active")) renderTable(st.recent)
     hideBanner()
   } catch (e) {
-    if (e.message !== "unauthorized") { $("upstreamDot").className = "dot bad"; $("upstreamText").textContent = "unreachable" }
+    if (e.message !== "unauthorized") { $("upstreamDot").className = "dot bad"; $("upstreamText").textContent = "连不上代理" }
   }
 }
 
@@ -555,7 +707,7 @@ function renderTable(recent) {
   const tb = $("reqTable").querySelector("tbody")
   const pager = $("reqPager")
   if (!recent || !recent.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="empty">no requests yet — go make some noise.</td></tr>'
+    tb.innerHTML = '<tr><td colspan="7" class="empty">还没有请求记录。</td></tr>'
     pager.innerHTML = ""
     return
   }
@@ -571,15 +723,174 @@ function renderTable(recent) {
       <td class="mono">${escapeHtml(r.model)}</td>
       <td><span class="badge ${cls}">${r.status}</span></td>
       <td class="mono">${r.ms == null ? "—" : fmtDur(r.ms)}</td>
+      <td class="mono">${r.in ? fmtNum(r.in) : "—"}</td>
+      <td class="mono">${r.out ? fmtNum(r.out) : "—"}</td>
       <td class="mono">${r.count}</td>
     </tr>`
   }).join("")
   pager.innerHTML = `
-    <button onclick="pageTable(-1)" ${tablePage <= 1 ? "disabled" : ""}>‹ prev</button>
-    <span class="pager-info">page ${tablePage} / ${pages} · ${rows.length} entries</span>
-    <button onclick="pageTable(1)" ${tablePage >= pages ? "disabled" : ""}>next ›</button>`
+    <button onclick="pageTable(-1)" ${tablePage <= 1 ? "disabled" : ""}>‹ 上一页</button>
+    <span class="pager-info">第 ${tablePage} / ${pages} 页 · 共 ${rows.length} 条</span>
+    <button onclick="pageTable(1)" ${tablePage >= pages ? "disabled" : ""}>下一页 ›</button>`
 }
 function pageTable(d) { tablePage += d; refreshStatus() }
+
+// ---------- 统计页 ----------
+let usageRange = "today"
+let usageMetric = "tokens"
+let usageLast = null
+
+function fmtTok(n) {
+  n = Number(n) || 0
+  if (n >= 1e8) return (n / 1e8).toFixed(2) + " 亿"
+  if (n >= 1e4) return (n / 1e4).toFixed(1) + " 万"
+  return String(Math.round(n))
+}
+function fmtNum(n) { return (Number(n) || 0).toLocaleString("zh-CN") }
+function niceMax(v) {
+  if (!(v > 0)) return 1
+  const e = Math.pow(10, Math.floor(Math.log10(v)))
+  const n = v / e
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * e
+}
+function barValue(p) {
+  if (usageMetric === "req") return p.req
+  if (usageMetric === "throughput") return p.ms > 0 ? (p.in + p.out) / (p.ms / 1000) : 0
+  return p.in + p.out
+}
+function lineValue(p) { return usageMetric === "req" ? p.in : p.req }
+function fmtTick(v) {
+  if (usageMetric === "tokens" || (usageMetric === "req" && v >= 1e4)) return fmtTok(v)
+  if (v >= 1000) return fmtTok(v)
+  return String(Math.round(v * 10) / 10)
+}
+function fmtBucket(t, step) {
+  const d = new Date(t)
+  // An hourly axis that crosses midnight otherwise shows a bare 00:00 with no
+  // way to tell which day it opens.
+  if (step >= 86400000 || d.getHours() === 0) return d.getMonth() + 1 + "/" + d.getDate()
+  return String(d.getHours()).padStart(2, "0") + ":00"
+}
+
+function drawUsage(u) {
+  const el = $("usChart")
+  const series = u.series || []
+  if (!series.length || !u.totals.req) {
+    el.innerHTML = '<div class="empty">这段时间还没有请求。</div>'
+    $("usLegend").innerHTML = ""
+    return
+  }
+  const W = Math.max(320, el.clientWidth || 900)
+  const H = 280
+  const L = 58, R = 52, T = 16, B = 30
+  const iw = W - L - R, ih = H - T - B
+  const step = u.step || 3600000
+  const barMax = niceMax(Math.max(...series.map(barValue)))
+  const lineMax = niceMax(Math.max(...series.map(lineValue)))
+  const yBar = (v) => T + ih - (v / barMax) * ih
+  const yLine = (v) => T + ih - (v / lineMax) * ih
+  const slot = iw / series.length
+  const bw = Math.max(2, Math.min(34, slot * 0.62))
+  const xOf = (i) => L + slot * (i + 0.5)
+
+  const parts = []
+  parts.push(`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="用量趋势图">`)
+  for (let g = 0; g <= 4; g++) {
+    const y = T + (ih / 4) * g
+    const bv = barMax - (barMax / 4) * g
+    const lv = lineMax - (lineMax / 4) * g
+    parts.push(`<line class="grid" x1="${L}" y1="${y}" x2="${W - R}" y2="${y}"/>`)
+    parts.push(`<text class="axis" x="${L - 8}" y="${y + 3}" text-anchor="end">${escapeHtml(fmtTick(bv))}</text>`)
+    parts.push(`<text class="axis" x="${W - R + 8}" y="${y + 3}">${escapeHtml(fmtTick(lv))}</text>`)
+  }
+  series.forEach((p, i) => {
+    const x = xOf(i) - bw / 2
+    const tip = `${new Date(p.t).toLocaleString("zh-CN", { hour12: false })}\n请求 ${p.req} 次（失败 ${p.err}）\n输入 ${fmtNum(p.in)} · 其中缓存 ${fmtNum(p.cached)}\n输出 ${fmtNum(p.out)} · 思考 ${fmtNum(p.think)}`
+    parts.push(`<g class="col" tabindex="0" data-tip-title="时段明细" data-tip="${escapeAttr(tip)}">`)
+    // Invisible hit area: a thin bar is otherwise nearly impossible to hover.
+    parts.push(`<rect x="${xOf(i) - slot / 2}" y="${T}" width="${slot}" height="${ih}" fill="transparent"/>`)
+    if (usageMetric === "tokens") {
+      // Draw the full input bar solid and shade the cached slice on top of it.
+      // Painting cached as its own paler segment made the bar read as empty,
+      // because cache hits are routinely 80%+ of the input.
+      const hIn = (p.in / barMax) * ih
+      const hCache = (Math.min(p.cached, p.in) / barMax) * ih
+      const hOut = (p.out / barMax) * ih
+      const base = T + ih
+      if (hIn > 0) parts.push(`<rect class="bar-in" x="${x}" y="${base - hIn}" width="${bw}" height="${hIn}"/>`)
+      if (hCache > 0) parts.push(`<rect class="bar-cache" x="${x}" y="${base - hCache}" width="${bw}" height="${hCache}"/>`)
+      if (hOut > 0) parts.push(`<rect class="bar-out" x="${x}" y="${base - hIn - hOut}" width="${bw}" height="${hOut}"/>`)
+    } else {
+      const v = barValue(p)
+      if (v > 0) parts.push(`<rect class="${usageMetric === "req" ? "bar-plain" : "bar-thru"}" x="${x}" y="${yBar(v)}" width="${bw}" height="${T + ih - yBar(v)}"/>`)
+    }
+    parts.push("</g>")
+  })
+  const pts = series.map((p, i) => `${xOf(i)},${yLine(lineValue(p))}`).join(" ")
+  parts.push(`<polyline class="line" points="${pts}"/>`)
+  if (series.length <= 48) series.forEach((p, i) => parts.push(`<circle class="dot" cx="${xOf(i)}" cy="${yLine(lineValue(p))}" r="2.6"/>`))
+  const every = Math.max(1, Math.ceil(series.length / 9))
+  let lastX = -1e9
+  series.forEach((p, i) => {
+    const d = new Date(p.t)
+    // Day boundaries always get a label, even when thinning skips them, so a
+    // multi-day axis never leaves the reader guessing which midnight is which.
+    const anchor = step >= 86400000 || d.getHours() === 0
+    if (i % every && !anchor) return
+    const x = xOf(i)
+    if (x - lastX < 46) return
+    lastX = x
+    parts.push(`<text class="axis" x="${x}" y="${H - 8}" text-anchor="middle">${escapeHtml(fmtBucket(p.t, step))}</text>`)
+  })
+  parts.push("</svg>")
+  el.innerHTML = parts.join("")
+
+  const legend = usageMetric === "tokens"
+    ? [["bar-in", "输入"], ["bar-cache", "其中缓存命中"], ["bar-out", "输出"], ["line", "请求数（右轴）"]]
+    : usageMetric === "req"
+      ? [["bar-plain", "请求数"], ["line", "输入 token（右轴）"]]
+      : [["bar-thru", "吞吐 tok/s"], ["line", "请求数（右轴）"]]
+  $("usLegend").innerHTML = legend.map(([cls, label]) => `<span><i class="${cls}"></i>${label}</span>`).join("")
+}
+
+async function refreshUsage() {
+  if (!document.getElementById("tab-usage").classList.contains("active")) return
+  try {
+    const u = await api("/api/usage?range=" + usageRange)
+    usageLast = u
+    const t = u.totals
+    $("usReq").textContent = fmtNum(t.req)
+    $("usErr").textContent = t.req ? `${fmtNum(t.err)} 个失败 · 成功率 ${Math.round(((t.req - t.err) / t.req) * 1000) / 10}%` : "该区间无请求"
+    $("usIn").textContent = fmtTok(t.in)
+    $("usInSub").textContent = `思考 ${fmtTok(t.think)}`
+    $("usCached").textContent = fmtTok(t.cached)
+    $("usCachedSub").textContent = t.in ? `命中率 ${Math.round((t.cached / t.in) * 1000) / 10}%` : "暂无输入"
+    $("usOut").textContent = fmtTok(t.out)
+    $("usOutSub").textContent = t.req ? `平均 ${fmtTok(Math.round(t.out / t.req))} / 请求` : "–"
+    const sameDay = new Date(u.from).toDateString() === new Date(u.to).toDateString()
+    const hm = (x) => new Date(x).toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" })
+    const md = (x) => { const d = new Date(x); return d.getMonth() + 1 + "/" + d.getDate() }
+    const span = sameDay ? `${md(u.from)} ${hm(u.from)} → ${hm(u.to)}` : `${md(u.from)} → ${md(u.to)}`
+    $("usMeta").textContent = `${span} · ${u.bucket === "hour" ? "小时粒度" : "按天粒度"} · ${u.series.length} 格`
+    drawUsage(u)
+  } catch (e) {
+    if (e.message !== "unauthorized") $("usChart").innerHTML = '<div class="empty">读取用量失败。</div>'
+  }
+}
+
+function setUsageRange(r) {
+  usageRange = r
+  document.querySelectorAll("#usRange .chip").forEach((b) => b.classList.toggle("on", b.dataset.range === r))
+  refreshUsage()
+}
+function setUsageMetric(m) {
+  usageMetric = m
+  document.querySelectorAll("#usMetric .chip").forEach((b) => b.classList.toggle("on", b.dataset.metric === m))
+  if (usageLast) drawUsage(usageLast)
+}
+document.querySelectorAll("#usRange .chip").forEach((b) => b.addEventListener("click", () => setUsageRange(b.dataset.range)))
+document.querySelectorAll("#usMetric .chip").forEach((b) => b.addEventListener("click", () => setUsageMetric(b.dataset.metric)))
+window.addEventListener("resize", () => { if (usageLast) drawUsage(usageLast) })
 
 async function refreshModels() {
   const cfg = await api("/api/config")
@@ -595,9 +906,9 @@ function renderModels(st) {
   const upstreamIds = ((st && st.models && st.models.served) || []).map((m) => (typeof m === "string" ? m : m.id))
   const list = [...new Set([...upstreamIds, ...config.fallbackModels, ...Object.keys(config.modelAliases)])]
   const unconfigured = upstreamIds.filter((m) => !config.fallbackModels.includes(m) && !config.modelAliases[m])
-  $("modelCount").textContent = list.length + " available" + (unconfigured.length ? ` · ${unconfigured.length} not in fallback` : "")
+  $("modelCount").textContent = list.length + " 个可用" + (unconfigured.length ? ` · ${unconfigured.length} 个未加入回退` : "")
   if (st && st.sync) renderSync(st.sync)
-  if (!list.length) { tb.innerHTML = '<tr><td colspan="4" class="empty">no models available right now.</td></tr>'; return }
+  if (!list.length) { tb.innerHTML = '<tr><td colspan="4" class="empty">当前没有可用模型。</td></tr>'; return }
   tb.innerHTML = list.map((m) => {
   const sync = st && st.sync
   const ms = modelStatus(m, sync)
@@ -609,13 +920,13 @@ function renderModels(st) {
   const isDefault = m === config.defaultModel
   const isConfigured = config.fallbackModels.includes(m) || !!config.modelAliases[m]
   const notInFallback = !config.fallbackModels.includes(m) && !config.modelAliases[m]
-  const notCfgBadge = notInFallback ? `<span class="badge mut" style="margin-left:6px" tabindex="0" data-tip="${escapeAttr(TIP.notconfigured)}">not in fallback</span>` : ""
-  const addBtn = notInFallback ? `<button onclick='addModel(${jsStr(m)})'>+ add</button>` : ""
+  const notCfgBadge = notInFallback ? `<span class="badge mut" style="margin-left:6px" tabindex="0" data-tip="${escapeAttr(TIP.notconfigured)}">未加入回退</span>` : ""
+  const addBtn = notInFallback ? `<button onclick='addModel(${jsStr(m)})'>+ 加入</button>` : ""
   return `<tr${notInFallback ? ' style="opacity:.65"' : ""}>
       <td class="mono">${display}${msBadge}${fmtBadge}${notCfgBadge}</td>
       <td><input type="radio" name="defaultModel" value="${escapeAttr(m)}" ${isDefault ? "checked" : ""} onchange='setDefault(${jsStr(m)})'></td>
       <td class="mono testCell" id="tc-${escapeAttr(m)}">–</td>
-      <td class="row" style="gap:10px"><button onclick='testModel(${jsStr(m)})'>Test</button>${addBtn}${aliasTarget || !isConfigured ? "" : `<button onclick='removeModel(${jsStr(m)})'>✕</button>`}</td>
+      <td class="row" style="gap:10px"><button onclick='testModel(${jsStr(m)})'>测试</button>${addBtn}${aliasTarget || !isConfigured ? "" : `<button onclick='removeModel(${jsStr(m)})'>✕</button>`}</td>
     </tr>`
   }).join("")
   if (st) $("ovModels").textContent = st.models.total
@@ -625,69 +936,69 @@ async function setDefault(m) {
   const cfg = await api("/api/config")
   cfg.config.defaultModel = m
   await api("/api/config", { method: "PUT", body: JSON.stringify(cfg.config) })
-  toast("Default model: " + m)
+  toast("默认模型已设为 " + m)
   refreshModels()
 }
 
 async function testModel(m) {
   const cell = $("tc-" + m)
-  cell.textContent = "testing…"
+  cell.textContent = "检测中…"
   try {
     const r = await api("/api/test", { method: "POST", body: JSON.stringify({ model: m }) })
     if (r.gated) {
       // The probe now looks like agent traffic, so a gate refusal means the
       // free tier is blocking this model even for real clients. Be honest:
       // it is not a happy "ok", and not a red ✗ either.
-      cell.innerHTML = `<span class="badge mut" tabindex="0" data-tip="${escapeAttr(TIP.gated)}">◦ gate-blocked</span> <span class="hint">the free-tier gate refused an agent-shaped probe</span>`
-      toast(m + " is gate-blocked — the free tier refused an agent-shaped probe", "bad")
+      cell.innerHTML = `<span class="badge mut" tabindex="0" data-tip="${escapeAttr(TIP.gated)}">◦ 被闸门拦下</span> <span class="hint">免费闸门拒绝了智能体形态的探测请求</span>`
+      toast(m + " 被闸门拦下：免费额度拒绝了智能体形态的探测", "bad")
       return
     }
     const cls = r.ok ? "ok" : "bad"
     cell.innerHTML = `<span style="color:${r.ok ? "var(--ink)" : "var(--coral)"}">${r.ok ? "✓" : "✗"} ${r.status} · ${fmtDur(r.ms)}</span>${r.detail ? ' <span class="hint">' + escapeHtml(String(r.detail).slice(0, 60)) + "</span>" : ""}`
-    toast(r.ok ? m + " works" : m + " failed (" + r.status + ")", r.ok ? "ok" : "bad")
-  } catch { cell.textContent = "error" }
+    toast(r.ok ? m + " 可用" : m + " 失败 (" + r.status + ")", r.ok ? "ok" : "bad")
+  } catch { cell.textContent = "出错" }
 }
 
 // Tooltip copy for each health state — kept short so it always fits the bubble.
 const TIP = {
-  live: "A real request through this proxy just succeeded.",
-  ok: "Health probe got a clean 200 upstream.",
-  gated: "The free-tier gate refused even an agent-shaped probe (tools + stream). Real requests will likely fail until the block lifts.",
-  flaky: "Temporary trouble — timeout or 5xx. Kept, it recovers.",
-  limited: "Upstream returned 429. Quota refills.",
-  dead: "Upstream says it's gone (404). Only state that removes it.",
-  untested: "No health check yet. Hit “Sync now”.",
-  responses: "Served on /v1/responses. Proxy translates it.",
-  notconfigured: "Upstream has it, your list doesn't.",
-  syncing: "Probing every free model right now.",
-  syncnever: "Auto-sync has not run yet.",
-  syncdone: "Last health check. Models are probed exactly the way real agent traffic hits them.",
+  live: "刚刚有真实请求经过这个代理并成功。",
+  ok: "健康探测从上游拿到干净的 200。",
+  gated: "免费闸门连智能体形态的探测（带工具 + 流式）都拒绝。在拦截解除前，真实请求大概率也会失败。",
+  flaky: "暂时性问题：超时或 5xx。保留在列表里，会自行恢复。",
+  limited: "上游返回 429，额度会自行补充回来。",
+  dead: "上游说该模型已不存在（404）。只有这个状态会把它移出列表。",
+  untested: "还没做过健康检查。点“立即同步”。",
+  responses: "走 /v1/responses 协议，由代理做转换。",
+  notconfigured: "上游有这个模型，但你的列表里没配。",
+  syncing: "正在逐个探测所有免费模型。",
+  syncnever: "自动同步还没跑过。",
+  syncdone: "最近一次健康检查。探测方式与真实智能体请求完全一致。",
 }
 
 function modelStatus(m, sync) {
   if (sync && sync.observed && sync.observed[m]) {
     const o = sync.observed[m]
-    if (o.ok > o.fail) return { cls: "ok", label: "ok (live traffic)", title: "live traffic", tip: TIP.live }
+    if (o.ok > o.fail) return { cls: "ok", label: "正常（真实流量）", title: "真实流量验证过", tip: TIP.live }
   }
-  if (!sync || !sync.at) return { cls: "mut", label: "untested", tip: TIP.untested }
-  if (sync.working?.includes(m)) return { cls: "ok", label: "ok", tip: TIP.ok }
-  if (sync.rateLimited?.includes(m)) return { cls: "warn", label: "rate-limited", tip: TIP.limited }
-  if (sync.gated?.includes(m)) return { cls: "warn", label: "gate-blocked", tip: TIP.gated }
-  if (sync.flaky?.includes(m)) return { cls: "warn", label: "flaky", tip: TIP.flaky }
-  if (sync.dead?.includes(m)) return { cls: "bad", label: "dead", tip: TIP.dead }
-  return { cls: "mut", label: "untested", tip: TIP.untested }
+  if (!sync || !sync.at) return { cls: "mut", label: "未检测", tip: TIP.untested }
+  if (sync.working?.includes(m)) return { cls: "ok", label: "正常", tip: TIP.ok }
+  if (sync.rateLimited?.includes(m)) return { cls: "warn", label: "限流 429", tip: TIP.limited }
+  if (sync.gated?.includes(m)) return { cls: "warn", label: "被闸门拦", tip: TIP.gated }
+  if (sync.flaky?.includes(m)) return { cls: "warn", label: "不稳定", tip: TIP.flaky }
+  if (sync.dead?.includes(m)) return { cls: "bad", label: "已下线", tip: TIP.dead }
+  return { cls: "mut", label: "未检测", tip: TIP.untested }
 }
 
 function renderSync(s) {
   const el = $("syncStatus")
   if (!el) return
   // The label itself is long, so the tooltip always uses a short fixed title.
-  el.setAttribute("data-tip-title", "auto-sync")
+  el.setAttribute("data-tip-title", "自动同步")
   el.setAttribute("tabindex", "0")
-  if (s.running) { el.textContent = "auto-sync: probing…"; el.className = "badge warn"; el.setAttribute("data-tip", TIP.syncing); return }
-  if (!s.at) { el.textContent = "auto-sync: never"; el.className = "badge mut"; el.setAttribute("data-tip", TIP.syncnever); return }
-  const ago = fmtUp(Math.max(1, Math.floor((Date.now() - s.at) / 1000))) + " ago"
-  el.textContent = `auto-sync: ${ago} · ${s.working.length} ok · ${s.rateLimited.length} rate-limited · ${(s.gated||[]).length} gate-blocked · ${s.flaky.length} flaky · ${s.dead.length} dead`
+  if (s.running) { el.textContent = "自动同步: 探测中…"; el.className = "badge warn"; el.setAttribute("data-tip", TIP.syncing); return }
+  if (!s.at) { el.textContent = "自动同步: 从未运行"; el.className = "badge mut"; el.setAttribute("data-tip", TIP.syncnever); return }
+  const ago = fmtUp(Math.max(1, Math.floor((Date.now() - s.at) / 1000))) + "前"
+  el.textContent = `自动同步: ${ago} · 正常 ${s.working.length} · 限流 ${s.rateLimited.length} · 被拦 ${(s.gated||[]).length} · 不稳定 ${s.flaky.length} · 已下线 ${s.dead.length}`
   el.className = "badge " + (s.ok ? (s.dead.length ? "warn" : "ok") : "bad")
   el.setAttribute("data-tip", TIP.syncdone)
 }
@@ -695,34 +1006,34 @@ function renderSync(s) {
 async function syncNow() {
   const btn = $("syncBtn")
   btn.disabled = true
-  btn.textContent = "syncing…"
+  btn.textContent = "同步中…"
   try {
     const r = await api("/api/sync", { method: "POST" })
-    toast(r.ok ? "Models synced" : "Sync failed: " + (r.error || ""), r.ok ? "ok" : "bad")
-  } catch { toast("Sync failed", "bad") }
+    toast(r.ok ? "模型同步完成" : "同步失败: " + (r.error || ""), r.ok ? "ok" : "bad")
+  } catch { toast("同步失败", "bad") }
   btn.disabled = false
-  btn.textContent = "⟳ Sync now"
+  btn.textContent = "⟳ 立即同步"
   refreshModels()
 }
 
 async function testZenKey() {
   const hint = $("zenKeyHint")
-  hint.textContent = "testing…"
+  hint.textContent = "检测中…"
   const zenKey = $("cfgZenKey").value
   const body = { model: $("cfgDefault").value.trim() || (config && config.fallbackModels ? config.fallbackModels[0] : "") }
   if (zenKey && zenKey !== savedZenKeyMasked) body.zenKey = zenKey
   try {
     const r = await api("/api/test", { method: "POST", body: JSON.stringify(body) })
     if (r.gated) {
-      hint.innerHTML = '<span style="color:var(--coral)">◦ gate refused an agent-shaped probe</span>'
-      toast("The free-tier gate refused an agent-shaped probe", "bad")
+      hint.innerHTML = '<span style="color:var(--coral)">◦ 闸门拒绝了智能体形态的探测</span>'
+      toast("免费闸门拒绝了智能体形态的探测", "bad")
     } else {
       hint.innerHTML = r.ok
-        ? '<span style="color:var(--ink)">✓ works (' + r.model + ")</span>"
+        ? '<span style="color:var(--ink)">✓ 可用（' + r.model + "）</span>"
         : '<span style="color:var(--coral)">✗ ' + r.status + " " + escapeHtml(String(r.detail || "").slice(0, 80)) + "</span>"
-      toast(r.ok ? "Key works: " + r.model : "Key rejected (" + r.status + ")", r.ok ? "ok" : "bad")
+      toast(r.ok ? "密钥可用: " + r.model : "密钥被拒 (" + r.status + ")", r.ok ? "ok" : "bad")
     }
-  } catch (e) { hint.textContent = "test failed"; toast("Test failed", "bad") }
+  } catch (e) { hint.textContent = "检测失败"; toast("测试失败", "bad") }
 }
 
 async function addModel(preset) {
@@ -732,7 +1043,7 @@ async function addModel(preset) {
   if (!cfg.config.fallbackModels.includes(m)) cfg.config.fallbackModels.push(m)
   await api("/api/config", { method: "PUT", body: JSON.stringify(cfg.config) })
   $("newModel").value = ""
-  toast("Added " + m)
+  toast("已添加 " + m)
   refreshModels()
 }
 
@@ -741,7 +1052,7 @@ async function removeModel(m) {
   cfg.config.fallbackModels = cfg.config.fallbackModels.filter((x) => x !== m)
   if (cfg.config.defaultModel === m) cfg.config.defaultModel = cfg.config.fallbackModels[0] || ""
   await api("/api/config", { method: "PUT", body: JSON.stringify(cfg.config) })
-  toast("Removed " + m)
+  toast("已移除 " + m)
   refreshModels()
 }
 
@@ -753,7 +1064,7 @@ async function populateConfigForm() {
   $("cfgUpstream").value = config.upstream
   $("cfgUa").value = config.ua
   $("cfgDefault").value = config.defaultModel
-  $("cfgDefault").placeholder = "(auto)"
+  $("cfgDefault").placeholder = "（自动）"
   $("cfgProxyKey").value = config.proxyKey === "••••••••" ? "" : config.proxyKey
   $("cfgZenKey").value = savedZenKeyMasked
   $("cfgTimeout").value = config.timeoutMs
@@ -774,13 +1085,13 @@ async function populateConfigForm() {
     const st = await api("/api/status")
     const auth = st.auth || {}
     const modeLabel =
-      auth.mode === "proxy+byok" ? "proxy key + your zen key"
-      : auth.mode === "byok" ? "your zen key"
-      : auth.mode === "proxy" ? "proxy key"
-      : "anonymous public"
+      auth.mode === "proxy+byok" ? "面板密钥 + 我的 Zen key"
+      : auth.mode === "byok" ? "我的 Zen key"
+      : auth.mode === "proxy" ? "面板密钥"
+      : "匿名公共额度"
     const eff = st.effectiveDefault ? " · auto→" + st.effectiveDefault : ""
-    $("cfgDefault").placeholder = eff ? "auto → " + st.effectiveDefault : "(auto)"
-    $("cfgAuth").textContent = "auth: " + modeLabel + (auth.zenKey ? " (" + auth.zenKey + ")" : "") + eff
+    $("cfgDefault").placeholder = eff ? "自动 → " + st.effectiveDefault : "（自动）"
+    $("cfgAuth").textContent = "鉴权方式: " + modeLabel + (auth.zenKey ? " (" + auth.zenKey + ")" : "") + eff
   } catch {}
 }
 
@@ -805,34 +1116,34 @@ async function saveConfig() {
     rateLimitMax: $("cfgRateLimit").checked ? Number($("cfgRateMax").value || 0) : 0,
     rateLimitWindowMs: Number($("cfgRateWindow").value || 60000),
   }
-  try { body.responsesModels = JSON.parse($("cfgResponses").value || "[]") } catch { toast("Invalid JSON — responses models", "bad"); return }
+  try { body.responsesModels = JSON.parse($("cfgResponses").value || "[]") } catch { toast("JSON 格式有误：Responses 模型", "bad"); return }
   if ($("cfgZenKey").value !== savedZenKeyMasked) body.defaultZenKey = $("cfgZenKey").value
   try {
     await api("/api/config", { method: "PUT", body: JSON.stringify(body) })
-    toast("Saved & applied")
+    toast("已保存并应用")
     config = null
     refreshAll()
-  } catch (e) { toast("Invalid JSON — check config", "bad") }
+  } catch (e) { toast("JSON 格式有误，请检查配置", "bad") }
 }
 
 async function restoreModels() {
   try {
     const r = await api("/api/config", { method: "POST", body: JSON.stringify({ fallbackModels: true }) })
     config = r.config
-    toast("Model list restored (" + config.fallbackModels.length + " models) — syncing now")
+    toast("模型列表已恢复（" + config.fallbackModels.length + " 个）— 正在同步")
     await api("/api/sync", { method: "POST" })
     refreshAll()
-  } catch { toast("Restore failed", "bad") }
+  } catch { toast("恢复失败", "bad") }
 }
 
-async function reloadConfig() { config = null; await populateConfigForm(); toast("Reloaded from file") }
+async function reloadConfig() { config = null; await populateConfigForm(); toast("已从文件重新载入") }
 
 async function loadLogs() {
   if (!document.getElementById("tab-logs").classList.contains("active")) return
   try {
     const r = await api("/api/logs?n=300")
     const box = $("logBox")
-    box.innerHTML = r.logs.map((l) => `<div class="line"><span class="ts">${escapeHtml(l.at)}</span>${escapeHtml(l.msg)}</div>`).join("") || '<div class="empty">No logs</div>'
+    box.innerHTML = r.logs.map((l) => `<div class="line"><span class="ts">${escapeHtml(l.at)}</span>${escapeHtml(l.msg)}</div>`).join("") || '<div class="empty">暂无日志</div>'
     box.scrollTop = box.scrollHeight
   } catch {}
 }
@@ -865,6 +1176,7 @@ function switchTab(name) {
   if (name === "logs") loadLogs()
   if (name === "models") refreshModels()
   if (name === "overview") refreshStatus()
+  if (name === "usage") refreshUsage()
 }
 document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)))
 
@@ -874,7 +1186,11 @@ function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&
 // Purpose-built for this dashboard. One accent per badge tone, tuned dark
 // enough to read on the paper background. Title reuses the badge's own label
 // so the two never drift apart.
-const ZTIP_TONE = { ok: "#4d6b00", warn: "#6b3fbf", bad: "#d63a1c", mut: "#7d7461" }
+const ZTIP_TONE = {
+  light: { ok: "#4d6b00", warn: "#6b3fbf", bad: "#d63a1c", mut: "#7d7461" },
+  dark: { ok: "#a8d84a", warn: "#b8a2ff", bad: "#ff7a5c", mut: "#8d8471" },
+}
+const ztipTone = (k) => (ZTIP_TONE[document.documentElement.dataset.theme] || ZTIP_TONE.light)[k]
 let ztipEl = null
 function ztipHide() {
   if (!ztipEl) return
@@ -891,7 +1207,7 @@ function ztipShow(target) {
   const bubble = document.createElement("div")
   bubble.className = "ztip"
   bubble.setAttribute("role", "tooltip")
-  bubble.style.setProperty("--ztip-accent", ZTIP_TONE[tone] || ZTIP_TONE.mut)
+  bubble.style.setProperty("--ztip-accent", ztipTone(tone) || ztipTone("mut"))
   const title = document.createElement("div")
   title.className = "ztip-title"
   title.textContent = target.getAttribute("data-tip-title") || target.textContent.trim()
@@ -933,6 +1249,14 @@ function jsStr(s) {
   return JSON.stringify(String(s ?? "")).replace(/'/g, "\\x27").replace(/&/g, "\\u0026")
 }
 
+const TABS = ["overview", "usage", "models", "config", "logs"]
+const startTab = TABS.indexOf(location.hash.slice(1))
+if (startTab > 0) switchTab(TABS[startTab])
+window.addEventListener("hashchange", () => {
+  const t = TABS.indexOf(location.hash.slice(1))
+  if (t >= 0) switchTab(TABS[t])
+})
+
 async function refreshAll() {
   try { await refreshStatus(); await refreshModels() } catch (e) { if (e.message === "unauthorized") showAuth() }
 }
@@ -941,11 +1265,13 @@ if (key) {
   refreshAll()
   setInterval(refreshStatus, 4000)
   setInterval(loadLogs, 8000)
+  setInterval(refreshUsage, 6000)
 } else {
   api("/api/status").then(() => {
     refreshAll()
     setInterval(refreshStatus, 4000)
     setInterval(loadLogs, 8000)
+  setInterval(refreshUsage, 6000)
   }).catch(() => showAuth())
 }
 </script>

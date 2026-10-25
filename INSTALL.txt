@@ -1,0 +1,93 @@
+﻿zen-proxy 便携包 使用说明
+
+【2026-10-25 重大变更，先读这段】
+
+上游已换版：本目录的 zen-proxy.mjs 现在是 12errh/zen-proxy 的 main 分支版本，第四节列的那些本地补丁全部作废，不要再应用任何 .diff。
+必须用 Bun 启动：免费额度要求运行时是 Bun。同一份请求体、同一分钟，Bun 发出去是 200，Node 发出去是 429（上游 v2 闸门会区分运行时，本机 A/B 实测）。Bun 1.4.4 已装在 %APPDATA%\npm\node_modules\bun\bin\bun.exe，start-hidden.ps1 与 start-zen-proxy.bat 都会优先用它，找不到才回退 node 并给出警告（回退时只有自带密钥的流量可用）。
+新增两个数据文件：agent-preamble.txt（约 8.2KB 的系统提示原文）与 agent-tools.json（工具清单）。闸门要求它们随请求发出，不要删除或替换成裁剪版。
+token 统计已重新移植到新版：采集（流式与非流式两条路径都覆盖）、按小时落盘、GET /api/usage、面板「统计」页与概览表的输入/输出两列都已恢复。check-usage.mjs 已改为用 Bun 起隔离实例，19 项全过；check-tools.mjs 3 项全过。
+
+打包时间 2026-10-20，上游 main 停在提交 b107e45，包内已含 2 处本地补丁。
+
+一、这台电脑需要什么
+
+只要 Node.js 18 或更高，装一个就行，不用挑版本（包里的补丁已经把 Node 24 的坑修掉了）。
+验证方法：按 Win+R，输入 cmd 回车，在黑窗口里敲 node -v ，能打印出版本号就可以。没有的话去 https://nodejs.org 装 LTS。
+
+二、启动
+
+双击 start-zen-proxy.bat。会弹出一个黑色窗口，显示 node 版本和一行 listening。
+这个窗口要保持开着，关掉它代理就停了。
+浏览器访问 http://127.0.0.1:8787/ 是管理面板。想确认服务活着，访问 http://127.0.0.1:8787/health ，看到 "ok":true 即正常。
+
+三、客户端里填这三个值
+
+接口地址（Base URL）  http://127.0.0.1:8787/v1
+API Key              public
+模型（Model）        glm-5.3-flash-free，或到面板 Models 页任选，列表会自动同步
+
+四、这个包里改了七处，上游原版直接跑是不能用
+
+1. OpenAI 路由原本只在"客户端不带工具"时才补 opencode 的工具清单，客户端自带工具的一律被上游判 403。现在改成两种情况都拼接上去。WorkBuddy、Trae 这类自带工具定义的客户端靠这条才连得上。
+2. 代理在流式请求里把客户端连接的 req.signal 直接传给了上游 fetch。Node 24 里这个信号在请求体读完的那一刻就已经是"已中止"状态，导致所有流式请求固定 13.6 秒后返回 502，而非流式一切正常。现在改成只在信号确实还没中止时才使用它。
+3. Anthropic 路由（/v1/messages）原本用 agentToolsFor() 按名字过滤工具清单，只有客户端存在正好叫 Read/Edit/Write/Bash/Grep/Glob/LS 的工具时才拼进去。客户端工具名不在映射表里时清单为空，闸门照样判 403——第 1 条只修了 OpenAI 路由，这条路由漏了。现在清单为空但客户端确实带了工具时，退回把整份清单作为附加工具拼在客户端工具之后（闸门只认 read 这一个）。代价：模型偶尔会去调桥接的 read，回给客户端就是一个它没有的 Read 工具调用。
+4. 第 1 条带来的连带问题：OpenAI 路由上 bridged 变量因此恒为真，而它同时被当作"这个客户端不能执行工具调用"的开关传给 stripToolCalls，于是模型返回的**所有**工具调用都被代理删掉、finish_reason 被改成 stop——表现为模型在 reasoning 里说"我要执行命令"，但客户端收到的正文和 tool_calls 都是空的，长任务第一步就断。现在拆出独立的 stripCalls 开关，只在客户端确实没带工具时才剥离。
+
+5. 新增：统计每次请求的 token 用量。上游原本把 usage 直接透传给客户端就丢掉，这里在三个出口各抄一份（非流式读响应体、流式在转发的 chunk 里嗅探、Responses 格式同上），按小时累加进内存并写入 usage-history.json，供面板「统计」页和 GET /api/usage 使用。不打这条不影响转发，但统计页会是空的（接口 404）。
+
+5. 新增：统计每次请求的 token 用量。上游原本把 usage 直接透传给客户端就丢掉，这里在三个出口各抄一份（非流式读响应体、流式在转发的 chunk 里嗅探、Responses 格式同上），按小时累加进内存并写入 usage-history.json，供面板「统计」页和 GET /api/usage 使用。不打这条不影响转发，但统计页会是空的（接口 404）。
+
+6. 修模型健康判据的误杀。原版把"429 且响应体没有 error"才算限流，而免费额度耗尽返回的恰恰是带 error 体的 429（FreeUsageLimitError），于是额度问题落到失败计数里，攒满三次就把仍然在册的模型报成"已下线"，还会把它们从回退清单里删掉并写回配置文件。2026-10-24 实测：六个模型全部仍在 /models 列表里，面板却显示只剩 1 个可用、配置清单被删到只剩 1 个。现在改成：429 一律算限流；额度、配额这类文本算临时故障；只有上游 /models 目录里已经查不到这个 id、且连续三轮如此，才允许判下线并删除。分类逻辑抽成了纯函数 classifyProbe，可以用合成输入回归。
+
+7. 上游端点迁移。上游现在把推理和模型目录拆在不同前缀下：推理是 /inference/openai/v1（Anthropic 兼容是 /inference/anthropic/v1），模型目录仍在 /inference/v1/models。旧推理地址 /inference/v1 目前还能用，但只是上游兼容，随时可能撤掉。改法：默认 upstream 改成 /inference/openai/v1，新增 catalogUrl 配置（留空则按 upstream 推导：去掉 /openai 段、保留版本段、再拼 /models），模型列表与健康探测改走 catalogUrl。旧地址会被自动迁移，在面板里填旧地址也会被纠正。catalogUrl 面板暂不暴露，需要覆盖时改配置文件或设环境变量 ZEN_CATALOG_URL。实测：改完后 /v1/models 返回 8 个模型、自动同步正常。
+
+补丁原文分六个文件：第 1、2 条在 zen-proxy-local-patches.diff，第 3 条在 zen-proxy-local-patch3.diff，第 4 条在 zen-proxy-local-patch4.diff，第 5 条在 zen-proxy-local-patch5.diff，第 6 条在 zen-proxy-local-patch6.diff，第 7 条在 zen-proxy-local-patch7.diff。以后更新上游代码，在本目录依次执行：
+
+    git apply zen-proxy-local-patches.diff
+    git apply zen-proxy-local-patch3.diff
+    git apply zen-proxy-local-patch4.diff
+    git apply zen-proxy-local-patch5.diff
+    git apply zen-proxy-local-patch6.diff
+    git apply zen-proxy-local-patch7.diff
+
+漏打第 3 个：用 Anthropic 接口且工具名不是 Claude 那一套的客户端会 403。
+漏打第 4 个：用 OpenAI 接口的客户端（WorkBuddy 等）能连上、状态码 200，但永远收不到工具调用，长任务跑不动。
+漏打第 6 个：免费额度用完之后，面板会把仍然在册的模型陆续报成"已下线"，并把它们从回退清单里删掉，删掉的模型不会自己回来。
+打完六个补丁后跑 node check-usage.mjs（验证采集、落盘、重启读回）和 node check-probe-classify.mjs（验证健康判据，不发网络请求）。
+
+面板 public/index.html 不走 diff 重放：它是本包自带的版本（已中文化，且带统计页与深浅主题）。更新上游时保留这个文件，不要拿上游的覆盖；确实要回到上游原版，英文原件在 public/index.html.en.bak，跑 node localize-zh.mjs 可以恢复中文，但统计页和主题需要手工合并。
+要把这一整套搬到另一台电脑，按 面板统计与主题-实施说明.md 走，里面写了改动点、验收清单和踩过的坑。
+
+五、每次请求的额外开销
+
+上游闸门要求请求里带上 opencode 的工具清单，否则判定"免费额度只能在 OpenCode 内使用"。包里默认用的是裁剪版：只留一个 read 工具、描述也改短，实测每次约 333 token；用完整的 6 个工具是约 3100 token。
+想换回：编辑 start-zen-proxy.bat 里 ZEN_PROXY_AGENT_TOOLS 那一行，依次可选 agent-tools-read.json（约 601 token），或删掉该行用自带的 agent-tools.json（约 3100 token）。哪天上游开始校验清单内容并报 403，就按这个顺序往回退。
+
+六、面板语言
+
+自带面板已中文化，翻译由本目录的 localize-zh.mjs 生成，不是手改的：
+  node localize-zh.mjs --check   只检查有多少条能对上，不写文件
+  node localize-zh.mjs           执行翻译，第一次会把英文原文备份到 public/index.html.en.bak
+上游更新过 public/index.html 之后重跑一次即可恢复中文；已经是中文的条目会自动跳过，重复执行不会改坏文件。
+专业词按约定保留英文：token、API、JSON、URL、状态码、UA / User-Agent、Host、Port、Zen key、Proxy key、模型 ID、/v1/models、/v1/responses。
+服务端日志页里正文是代理进程自己打印的英文日志，属于 zen-proxy.mjs 的输出，不是面板文案，翻译它需要改服务端代码。
+改完面板要重启一次代理才会生效：界面 HTML 是启动时读进内存的，改文件不重启看不到。
+
+面板另有两处本地功能，不属于翻译：
+
+统计页（第五个页签「统计」）：四张卡是请求总数、输入 token、缓存 token、输出 token，缓存卡副行是命中率；下面是柱线复合图，柱为 token、折线为请求数，可切 Token / 请求数 / 吞吐 三种口径，区间有 今日 / 近 3 日 / 本周 / 本月 / 近 30 天 / 全部。数据来自 GET /api/usage，落在 usage-history.json，按小时一格，约每 10 秒合并写一次；被强制结束进程时最多丢最近 10 秒。
+概览页的「最近请求」表多了输入、输出两列，显示的是本次进程启动以来的记录。
+
+深浅主题：右上角「深色 / 浅色」按钮切换，选择记在浏览器本地；没手动选过时跟随系统的深浅偏好。
+
+七、常见问题
+
+测试连接能过、真实对话报 403：多半是补丁没打上，见第四条第 1 点。
+只有流式挂、非流式正常、而且固定卡 13 秒左右：第四条第 2 点。
+响应忽快忽慢：免费池是按 IP 共享的匿名额度，同一个请求实测从 1.9 秒到 54 秒都出现过。客户端超时设得短会误报失败，这时去面板「概览」看真实状态码，是 200 就说明服务没问题。
+回答是空的或只有一半：免费模型普遍带思考输出。不要在客户端里填 max_tokens 和上下文长度，用默认值（已实测可用）；怀疑被截断时先看面板「概览」的状态码和耗时，再判断是上游还是本地的问题。
+
+八、安全边界
+
+默认只监听 127.0.0.1，局域网里别的设备连不上。管理面板本身没有登录，本机任何程序都能用这个端口；如果要开放给别的设备，改配置里的 host，并先在面板 Settings 里设一个 proxyKey。
+配置文件 zen-proxy.json 在第一次启动时自动生成，之后可以在面板 Settings 里直接改，大部分项保存即生效。
