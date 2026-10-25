@@ -46,7 +46,7 @@ irm https://raw.githubusercontent.com/12errh/zen-proxy/main/install.ps1 | iex
 
 <sub>安装就这一步：不需要注册、不需要 API Key、不需要 `npm install`。装完挑一个客户端接上即可。</sub>
 
-> 在 Windows 上还可以用免安装的启动脚本，见 [Windows 启动脚本](#windows-启动脚本)。
+> 上面两条装的是上游原版。想要本修改版的统计页与中文面板，克隆本仓库后用 Bun 启动即可：`bun zen-proxy.mjs`（必须是 Bun，原因见下面「为什么需要代理」）。
 
 ---
 
@@ -113,7 +113,7 @@ curl http://127.0.0.1:8787/v1/chat/completions \
 
 ### 中文面板
 
-整个面板已中文化，共 142 条文案。翻译不靠手工维护，而是由 `localize-zh.mjs` 按对照表生成：
+整个面板已中文化，共 141 条文案。翻译不靠手工维护，而是由 `localize-zh.mjs` 按对照表生成：
 
 ```bash
 node localize-zh.mjs --check   # 只检查有多少条能对上，不改文件
@@ -140,26 +140,6 @@ node localize-zh.mjs           # 执行翻译，首次会把英文原文备份�
 右上角一个按钮切换深色与浅色。选择记在浏览器本地；从没手动选过时跟随系统的深浅偏好。
 
 深色主题不是简单反色。面板的边框和硬阴影原本都读同一个颜色变量，主题一反转，荧光绿底上的文字会跟着变浅、糊成一片。所以亮色底上的文字单独用了一个固定的深色变量，描边和点缀用的绿也单独拆出来保持亮度。
-
-### 自检脚本
-
-```bash
-node check-tools.mjs    # 两条路由的工具调用是否正常（会发真实请求）
-node check-usage.mjs    # 统计采集、缓存命中、落盘、重启读回（自己在另一个端口起隔离实例）
-```
-
-`check-usage.mjs` 之所以起隔离实例，是因为真实实例的计数会被自动同步探测和正在使用的客户端污染，精确断言必然假红。它会优先用 Bun 启动隔离实例——用 Node 起会被上游闸门拒成 429。
-
-### Windows 启动脚本
-
-| 文件 | 用途 |
-|---|---|
-| `启动-后台.bat` | 后台启动，无窗口 |
-| `停止.bat` | 停止正在运行的服务 |
-| `start-zen-proxy.bat` | 带窗口启动，用于排查问题 |
-| `zen-proxy.vbs` | 放进「启动」文件夹实现开机自启 |
-
-前两个实际调用 `start-hidden.ps1` / `stop-hidden.ps1`。启动脚本优先找 Bun，找不到才回退 Node，且回退时明确警告：那样免费额度拿不到，只有自带密钥的流量能用。
 
 ---
 
@@ -217,7 +197,11 @@ OpenCode 的免费模型只对 OpenCode CLI 本身开放。别的东西直接请
 
 `http://127.0.0.1:8787/` —— 上游健康状态与运行时长、实时请求流、一键测模型、直接改配置、日志尾巴，以及本版新增的统计页与深浅主题。
 
-![zen-proxy dashboard](assets/dashboard.png)
+下面是统计页，浅色与深色各一张（数据是这台机器真实跑出来的用量）：
+
+![zen-proxy 面板统计页（浅色）](assets/dashboard.png)
+
+![zen-proxy 面板统计页（深色）](assets/dashboard-dark.png)
 </details>
 
 <details>
