@@ -27,3 +27,17 @@ usage-history.json.*
 .q*.json
 node_modules/
 Thumbs.db
+
+# 本地运行产生的文件，不进仓库
+zen-proxy.json
+zen-proxy.json.bak-*
+usage-history.json
+usage-history.json.*
+*.bak-*
+*.tmp
+.q*.json
+public/index.html.en.bak
+agent-tools-min.json
+agent-tools-read.json
+node_modules/
+Thumbs.db
