@@ -17,18 +17,7 @@ docs/discord-mcp-setup.md
 # brag video output (plan, brief, composition, renders) is local-only; the shipped copies live in assets/
 brag-output/
 
-# 本地运行产生的文件，不进仓库
-zen-proxy.json
-zen-proxy.json.bak-*
-usage-history.json
-usage-history.json.*
-*.bak-*
-*.tmp
-.q*.json
-node_modules/
-Thumbs.db
-
-# 本地运行产生的文件，不进仓库
+# 本机运行产生的文件，不进仓库
 zen-proxy.json
 zen-proxy.json.bak-*
 usage-history.json
@@ -41,3 +30,18 @@ agent-tools-min.json
 agent-tools-read.json
 node_modules/
 Thumbs.db
+
+# 本机专用脚本与说明：本地保留、不发布。上游自带的 install.ps1、
+# bin/claude-zen.ps1 已入库，不受这里影响（.gitignore 只管未跟踪文件）。
+check-tools.mjs
+check-usage.mjs
+start-hidden.ps1
+stop-hidden.ps1
+start-zen-proxy.bat
+启动-后台.bat
+停止.bat
+zen-proxy.vbs
+zen-proxy-local-patch*.diff
+INSTALL.txt
+跨机部署说明.md
+面板统计与主题-实施说明.md
